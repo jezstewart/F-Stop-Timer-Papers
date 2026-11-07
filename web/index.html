@@ -1,0 +1,1821 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>F-stop timer</title>
+<style>
+/* ---------- the 1280x800 tablet screen (16:10): red on black ---------- */
+#screen{position:absolute;left:0;top:0;width:1280px;height:750px;background:#000;color:var(--r5);font-family:'Roboto Condensed','sans-serif-condensed','Arial Narrow','Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:500;overflow:hidden;transform-origin:0 0;transition:filter .35s;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#screen *{box-sizing:border-box}
+:where(#screen) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#screen button:disabled{opacity:.3;cursor:not-allowed}
+#screen button:focus-visible,#screen input:focus-visible,#screen select:focus-visible{outline:2px dashed var(--r5);outline-offset:4px}
+:where(#screen) small{font-size:.42em;font-weight:500;margin-left:8px;color:var(--r4)}
+.num{font-weight:700;font-variant-numeric:tabular-nums;line-height:.92;text-shadow:0 0 20px rgba(255,0,0,.38)}
+.lbl{color:var(--r4);font-size:26px;margin:0 0 6px;line-height:1.1}
+.muted{color:var(--r4)}
+#segbar{position:absolute;left:0;right:0;top:0;height:18px;display:flex;gap:4px;padding:4px 4px 0}
+.seg{flex:1;background:var(--r1);border-radius:2px;overflow:hidden;position:relative}
+.seg i{display:block;height:100%;width:0;background:var(--r5)}
+.seg.next{outline:1px solid var(--r5);outline-offset:-1px}
+#status{position:absolute;left:0;right:0;top:18px;height:52px;display:flex;align-items:center;gap:20px;padding:0 18px;font-size:26px;border-bottom:1px solid var(--r2)}
+.schip{min-width:155px;padding:4px 15px 2px;border:2px solid var(--r4);border-radius:8px;text-align:center;font-weight:700;font-size:29px}
+.schip.exp{background:var(--r2);color:var(--o);border-color:var(--o)}
+.schip.warn{border-style:dashed}
+.gchip{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:3px 14px 2px;border:2px solid var(--r4);border-radius:8px;color:var(--r4);white-space:nowrap}
+.gchip small{font-size:15px;font-weight:600;letter-spacing:.02em}
+.gchip b{font-size:30px;font-weight:700;line-height:1.05}
+.gchip:disabled{opacity:.35}
+.about{margin:4px 0 0;font-size:21px;line-height:1.1;color:var(--r3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast{flex:1;color:var(--r4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast.hot{color:var(--r5)}
+.ind{display:flex;align-items:center;gap:8px;color:var(--r3)}
+.ind i{width:15px;height:15px;border-radius:50%;border:2px solid var(--r3)}
+.ind.on{color:var(--r5)}
+.ind.on i{background:var(--r5);border-color:var(--r5);box-shadow:0 0 10px var(--r5)}
+#main{position:absolute;left:0;right:0;top:70px;height:600px;padding:18px 25px}
+#nav{position:absolute;left:0;right:0;top:670px;height:80px;display:flex;border-top:1px solid var(--r2)}
+#nav button{flex:1;min-width:0;padding:0;white-space:nowrap;font-size:24px;font-weight:600;color:var(--r4);border-right:1px solid var(--r1)}
+#nav button:last-child{border-right:0}
+#nav button.on{background:var(--r1);color:var(--o);box-shadow:inset 0 5px 0 var(--o)}
+#nav.locked button{opacity:.3;pointer-events:none}
+.banner{position:absolute;left:0;right:0;top:0;z-index:5;height:42px;background:var(--r2);color:var(--o);box-shadow:inset 0 -3px 0 var(--o);font-size:28px;font-weight:600;padding:6px 25px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.banner+div{margin-top:45px;height:calc(100% - 45px)}
+
+.btn,.chip,.sq,.big,.tog,.go,.strip,.basev{border:2px solid var(--r4);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.btn.on{background:var(--r2)!important;color:var(--o)!important;border-color:var(--o)!important}
+.btn.on small{color:var(--o)!important}
+.sq{width:95px;height:95px;font-size:68px;font-weight:600;flex:none}
+.sq.s{width:62px;height:58px;font-size:42px;border-radius:10px}
+.chip{flex:1;height:65px;font-size:35px;font-weight:600;border-radius:10px;padding:0 8px}
+.row{display:flex;gap:12px;margin-bottom:15px}
+.big{flex:1;height:120px;flex-direction:column;font-size:82px;font-weight:600;border-radius:15px;line-height:.9}
+.big small{font-size:28px;margin:0;color:var(--r4)}
+.go{white-space:nowrap;height:115px;background:var(--r2);color:var(--o);border-color:var(--o);border-width:3px;font-size:70px;font-weight:700;border-radius:15px;width:100%}
+.tog{flex:1;height:65px;font-size:31px;font-weight:600;border-radius:10px}
+
+/* time view */
+.time{display:grid;grid-template-columns:690px 1fr;gap:38px;height:100%}
+.baserow{display:flex;align-items:center;gap:15px;margin-bottom:15px}
+.basev{flex:1;height:95px;border-color:var(--r2);align-items:baseline;padding-top:8px}
+.basev .num{font-size:92px}
+.basev small{font-size:38px}
+.tr{display:flex;flex-direction:column;gap:12px;min-width:0}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;border:2px solid var(--r3);border-radius:15px;padding:12px 18px 10px;height:185px}
+.readout .num{font-size:95px;white-space:nowrap}
+.readout.sm{height:auto;padding:10px 15px;margin-bottom:12px}
+.readout.sm .num{font-size:65px}
+.note{color:var(--r4);font-size:25px;margin-top:-4px}
+.bright{display:flex;align-items:center;gap:15px;height:45px}
+.bright input{flex:1}
+#screen input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:38px;margin:0;color:var(--r4)}
+#screen input[type=range]::-webkit-slider-runnable-track{height:10px;background:var(--r2);border-radius:5px}
+#screen input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:35px;height:35px;margin-top:-10px;border-radius:50%;background:var(--r5);border:2px solid #000}
+#screen input[type=range]::-moz-range-track{height:10px;background:var(--r2);border-radius:5px}
+#screen input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--r5);border:2px solid #000}
+#screen input[type=range]:disabled{opacity:.35}
+.bright #focusrem{min-width:138px;text-align:right}
+
+/* strip view */
+.stripwrap{display:grid;grid-template-columns:775px 1fr;gap:32px;height:100%}
+.strips{display:flex;gap:10px;margin-bottom:15px}
+.strip{flex:1;height:172px;flex-direction:column;justify-content:space-between;padding:10px 5px;border-radius:10px}
+.strip .sn{font-size:30px;color:var(--r4)}
+.strip .sv{font-size:38px;white-space:nowrap}
+.strip .st{font-size:29px;color:var(--r5)}
+.strip.sel{border-width:5px;border-color:var(--r5)}
+.tbl{display:grid;grid-template-columns:88px 1fr 1fr 1fr;font-size:29px}
+.tbl>div{padding:4px 10px;border-bottom:1px solid var(--r1);line-height:1.15}
+.tbl .h{color:var(--r4)}
+.rcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rcol>.btn,.rcol>.row,.rcol>.mini,.rcol>.saved{flex:none}
+.rcol .chip{min-width:0;padding:0}
+.go.sm{font-size:52px}
+.mini{display:flex;align-items:center;gap:12px}
+.mini .basev{height:80px}
+.mini .basev .num{font-size:62px}
+.mini .basev small{font-size:30px}
+.stp{display:flex;align-items:center;gap:10px}
+.stp .sv{min-width:102px;text-align:center;font-size:38px;font-weight:600}
+
+/* recipe view */
+.recwrap{display:grid;grid-template-columns:762px 1fr;gap:32px;height:100%}
+.list{height:360px;overflow-y:auto;padding-right:8px;margin-bottom:10px}
+.entry{display:flex;align-items:center;gap:15px;height:70px;border:2px solid var(--r2);border-radius:10px;padding:0 10px;margin-bottom:10px}
+.badge{width:98px;text-align:center;border:2px solid var(--r4);border-radius:8px;font-size:28px;font-weight:600;padding:2px 0}
+.badge.dodge{border-style:dashed}
+.es{font-size:48px;width:130px}
+.et{flex:1;font-size:32px}
+.empty{color:var(--r4);font-size:32px;line-height:1.25;padding:25px 5px;max-width:650px}
+.saved{display:flex;flex-wrap:wrap;gap:10px}
+.saved .chip{flex:none;height:55px;font-size:29px;padding:0 15px}
+.saved .x{width:55px;flex:none}
+
+/* log, scale, settings */
+.logv{height:100%}
+.lhead,.lrow{display:grid;grid-template-columns:120px 135px 1fr 312px;gap:12px;align-items:center;padding:5px 8px;font-size:29px}
+.lhead{color:var(--r4);border-bottom:1px solid var(--r2)}
+.lrow{border-bottom:1px solid var(--r1);min-height:62px}
+.lrow input,.scv input,.scv select{background:#000;color:var(--r5);border:2px solid var(--r3);border-radius:8px;font:inherit;font-size:30px;padding:5px 10px;width:100%;min-width:0}
+.lrow input::placeholder{color:var(--r3)}
+.loglist{height:415px;overflow-y:auto}
+.scv{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.szrow{display:grid;grid-template-columns:188px 1fr 32px 1fr;gap:12px;align-items:center;margin-bottom:18px}
+.szrow .cap{font-size:32px;grid-row:span 2}
+.scv select{grid-column:2 / 5;margin-bottom:0}
+.scres{border:2px solid var(--r3);border-radius:15px;padding:20px 22px}
+.scres .num{font-size:88px}
+.setv{display:grid;grid-template-columns:1fr 1fr;gap:8px 45px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:75px;border-bottom:1px solid var(--r1);font-size:31px;line-height:1.1}
+.srow small{display:block;margin:2px 0 0;font-size:24px;color:var(--r4)}
+.srow .tog{flex:none;width:130px;height:55px}
+
+/* run view */
+.run{display:grid;grid-template-columns:1fr 425px;grid-template-rows:minmax(0,1fr);gap:28px;height:100%}
+.rl{display:flex;flex-direction:column;min-width:0;min-height:0}
+.rtitle{font-size:38px;color:var(--r4)}
+.cdbox{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.cd{font-size:268px;line-height:.86;letter-spacing:-2px}
+.cd.stale{opacity:.45}
+.cdcap{font-size:32px;color:var(--r4);margin-top:5px}
+.pr1{font-size:38px;font-weight:600}
+.pr2{font-size:55px;font-weight:700;line-height:1.05;min-height:58px}
+.runbtns{display:flex;gap:18px;margin-top:15px}
+.runbtns .go{height:95px;font-size:58px;flex:1}
+.runbtns .tog2{flex:1;height:95px;font-size:55px;font-weight:700;border:2px solid var(--r4);border-radius:15px}
+.rr{min-width:0}
+.mstrips{display:flex;gap:8px;margin-bottom:12px}
+.mstrip{flex:1;height:118px;border:2px solid var(--r4);border-radius:8px;display:flex;align-items:flex-start;justify-content:center;font-size:32px;padding-top:5px}
+.mstrip.cov{background:transparent;border-style:dashed;border-color:var(--r2);color:var(--r3)}
+.mstrip.lit{background:rgba(255,0,0,.32)}
+.steps{margin-bottom:10px}
+.stpl{display:flex;justify-content:space-between;font-size:30px;padding:4px 10px;border-bottom:1px solid var(--r1)}
+.stpl.done{color:var(--r3);text-decoration:line-through}
+.stpl.cur{background:var(--r2);color:var(--o)}
+.cues{border:2px solid var(--r3);border-radius:10px;padding:8px 12px;margin-top:8px}
+.cue{display:flex;justify-content:space-between;font-size:30px;padding:2px 0}
+.cue.hold{color:var(--o);background:var(--r2);margin:0 -6px;padding:2px 8px;border-radius:5px}
+
+/* overlay keypad */
+#overlay{position:absolute;inset:0;z-index:20}
+#overlay:empty{display:none}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center}
+.kp{width:475px;border:2px solid var(--r4);border-radius:18px;background:#000;padding:20px}
+.kpd{border:2px solid var(--r3);border-radius:10px;text-align:right;padding:8px 18px;margin-bottom:15px;font-size:80px;height:105px}
+.kpg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpg button{height:80px;font-size:48px;font-weight:600;border:2px solid var(--r4);border-radius:10px}
+.kpg .ok{background:var(--r2);color:var(--o);border-color:var(--o)}
+
+
+/* ---- tablet layout: 16:10 canvas, flex column app ---- */
+#screen{width:1280px;height:800px}
+#app{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;transition:filter .35s}
+#segbar{position:relative;left:auto;right:auto;top:auto;flex:none;height:18px;padding:4px 4px 0}
+#status{position:relative;left:auto;right:auto;top:auto;flex:none;height:54px;padding:0 20px;font-size:26px}
+#main{position:relative;left:auto;right:auto;top:auto;flex:1;min-height:0;height:auto;padding:20px 32px}
+#nav{position:relative;left:auto;right:auto;top:auto;flex:none;height:80px}
+.banner{height:44px;padding:6px 32px;padding-right:250px;font-size:27px;line-height:1.25}
+.banner+div{margin-top:46px;height:calc(100% - 46px)}
+.bbtn{position:absolute;right:16px;top:5px;height:34px;padding:0 24px;border:3px solid var(--o);border-radius:8px;font-size:26px;font-weight:700;color:var(--o);background:transparent;line-height:1}
+#overlay{z-index:50}
+.time .lbl{font-size:26px;margin-bottom:6px}
+.time .baserow{gap:16px;margin-bottom:14px}
+.time .sq{width:96px;height:96px;font-size:70px}
+.time .basev{height:96px}
+.time .basev .num{font-size:96px}
+.time .row{margin-bottom:14px}
+.time .chip{height:68px;font-size:36px}
+.time .tr .chip{height:62px;font-size:29px}
+.time .big{height:130px;font-size:84px}
+.time .big small{font-size:28px}
+.time .tr{gap:12px}
+.time .readout{height:190px}
+.time .readout .num{font-size:100px}
+.time .go{height:112px;font-size:70px}
+.time .tog{height:64px;font-size:30px}
+.time .bright{height:48px}
+.tbl>div{padding:6px 12px}
+.strips .strip{height:190px}
+.stripwrap .go{height:120px}
+.stripwrap .chip{height:70px}
+.list{height:390px}
+.loglist{height:420px}
+.srow{min-height:82px;font-size:31px}
+.srow small{font-size:23px}
+.setv{gap:10px 52px}
+.scv .cap{font-size:32px}
+.scv input,.scv select{font-size:30px;padding:8px 12px}
+.szrow{margin-bottom:24px}
+.scres{padding:26px 32px}
+.scres .num{font-size:100px}
+
+
+.dev{display:grid;grid-template-columns:560px minmax(0,1fr);gap:30px;height:100%}
+.dev>div{min-width:0}
+.dev .lbl{font-size:26px;margin-bottom:2px}
+.dtemp{display:flex;align-items:baseline;gap:10px}.dtemp .num{font-size:110px;line-height:1.05}.dtu{font-size:40px;color:var(--r4)}
+.dev .note{font-size:22px;min-height:50px;margin:0 0 6px}
+.dev .note#dvmsg{min-height:28px;margin:0 0 2px}
+.dev .lbl.sm{font-size:22px;margin:6px 0 2px}
+.drow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;border-bottom:1px solid var(--r1);font-size:29px;line-height:1.05}
+.drow small{display:block;font-size:19px;color:var(--r4);margin-top:2px}
+.drow .tog{flex:none;width:92px;height:52px;font-size:28px}
+.drow .stp .sv{min-width:96px;font-size:34px}
+.dcd{font-size:104px;line-height:1.02}
+.dvbar{height:14px;background:var(--r2);border-radius:7px;overflow:hidden;margin:2px 0 6px}.dvbar i{display:block;height:100%;width:0;background:var(--o)}
+.dvlist{margin:4px 0 6px}.dvl{display:flex;justify-content:space-between;font-size:25px;padding:1px 10px;border-radius:6px;color:var(--r3)}
+.dvl.cur{background:var(--r2);color:var(--o);font-weight:700}.dvl.done{color:var(--r3);text-decoration:line-through}
+.dev .chip{height:56px;font-size:24px;white-space:nowrap;flex:1;min-width:0;padding:0 4px}
+.dev .go.sm{flex:1;height:64px;font-size:38px}
+/* ---- print and calibration views ---- */
+.prt{display:grid;grid-template-columns:600px 1fr;gap:32px;height:100%}
+.prt .lbl{font-size:26px}
+.vrow{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.vrow .name{flex:1;font-size:27px;line-height:1.05}
+.vrow .val{min-width:120px;text-align:center;font-size:40px}
+.vrow .how{font-size:21px;line-height:1.05;color:var(--r4);min-width:120px}
+.prt .readout{height:auto;padding:8px 16px 6px;margin-bottom:10px}
+.prt .readout .num{font-size:66px}
+.prt .chip{font-size:30px;white-space:nowrap;height:62px;padding:0 6px}
+.prt .go.sm{height:76px;font-size:44px}
+.prt .note{font-size:21px;margin-top:6px}
+.tscale{position:relative;margin-top:10px}
+.tmrow{position:relative;height:50px}
+.tm{position:absolute;bottom:2px;transform:translateX(-50%);font-size:30px;padding:2px 14px;border:2px solid var(--r5);border-radius:8px;background:#000;color:var(--r5)}
+.tm.edge{opacity:.55;border-style:dashed}
+.tbar{display:flex;border:2px solid var(--r3);height:100px}
+.tcell{flex:1;display:block}
+.tlabs{position:relative;height:44px}
+.tlab{position:absolute;top:10px;transform:translateX(-50%);font-size:23px;color:var(--r4);white-space:nowrap}
+.tlab::before{content:'';position:absolute;left:50%;top:-10px;height:10px;border-left:2px solid var(--r4)}
+.tsum{font-size:25px;line-height:1.25;margin-top:2px}
+.cal{height:100%}
+.cal .lbl{font-size:27px;margin:0}
+.calhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.calhead .chip{height:54px;font-size:27px;padding:0 20px;white-space:nowrap}
+.calchips{display:flex;gap:6px;margin-bottom:4px}
+.calchips .chip{flex:1;min-width:0;height:54px;font-size:26px;padding:0 2px}
+.calres{font-size:22px;margin:2px 0 4px;min-height:28px}
+.calstep{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;border-top:1px solid var(--r1);padding:6px 0}
+.calstep .t{font-size:23px;line-height:1.15}
+.calstep .t b{font-size:25px}
+.pchip{flex:none;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;width:215px;padding:3px 8px;border:2px solid var(--r4);border-radius:8px;color:var(--r4);font-size:18px;font-weight:700;line-height:1.1;text-align:center;white-space:normal}
+.pchip:disabled{opacity:.35}
+.ppick{flex-direction:column;align-items:flex-start;justify-content:center;width:100%;height:74px;padding:2px 14px;text-align:left;line-height:1.05;margin-bottom:6px}
+.ppick small{font-size:19px;color:var(--r3);margin:0}
+.ppick b{font-size:24px;font-weight:600;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paprow{display:flex;gap:8px;margin-bottom:6px}
+.paprow .ppick{flex:1;min-width:0;width:auto;height:60px;margin:0}
+.paprow .ppick b{font-size:26px}
+.paprow .chip{flex:none;height:60px;font-size:26px;padding:0 16px;white-space:nowrap}
+.ppbox{width:1180px;max-height:720px;border:2px solid var(--r4);border-radius:18px;background:#000;padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.pph{font-size:30px;color:var(--r4)}
+.pplist{overflow-y:auto;max-height:470px;display:flex;flex-direction:column;gap:8px}
+.plrow{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:64px;padding:4px 16px;font-size:30px;text-align:left;flex:none}
+.plrow .pn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plrow .pm{flex:none;font-size:22px;color:var(--r4)}
+.plrow.on .pm{color:var(--o)}
+.ppcols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ppopts .lbl{font-size:24px;margin:8px 0 4px}
+.ppopts .chip{flex:none;height:54px;font-size:26px;padding:0 14px}
+.ppprev,.ppmsg{font-size:26px;margin-top:12px}
+.ppmsg{font-size:34px;color:var(--r5)}
+.ppbox .chip{height:62px;font-size:30px}
+.ppopts .chip{height:54px;font-size:26px}
+.kbd{border:2px solid var(--r3);border-radius:10px;padding:6px 16px;font-size:44px;height:70px;white-space:nowrap;overflow:hidden;color:var(--r5)}
+.kbd .caret{display:inline-block;width:3px;height:40px;margin-left:3px;vertical-align:middle;background:var(--r4)}
+.kbg{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
+.kbk{height:70px;font-size:38px;font-weight:600;border:2px solid var(--r4);border-radius:10px}
+.kbk.on,.kbk.ok{background:var(--r2);color:var(--o);border-color:var(--o)}
+.lrow small{display:block;font-size:20px;color:var(--r4);line-height:1.1}
+.dev .chip{height:50px}
+.ppick b{font-size:22px}
+.dev .devmk{display:flex;align-items:center;gap:12px;margin-top:6px}
+.dev .devmk .chip{flex:none;width:250px;height:50px;font-size:25px}
+.dev .devmk .note{font-size:19px;min-height:0;margin:0;line-height:1.15}
+.picks{display:flex;gap:8px}
+.picks .chip{flex:none;min-width:92px;height:72px;flex-direction:column;font-size:31px;white-space:nowrap}
+.picks small{font-size:18px;margin:0}
+
+/* ---- meter view ---- */
+.mtr{display:grid;grid-template-columns:700px 1fr;gap:32px;height:100%}
+.mtr .lbl{font-size:26px;min-height:30px;margin-bottom:6px}
+.mtr .readout{height:auto;padding:8px 18px 6px}
+.mtr .readout .num{font-size:78px}
+.mtr .num.stale{opacity:.45}
+.mtr .note{font-size:22px;margin-top:6px;min-height:0}
+.mtr .chip{font-size:30px;white-space:nowrap;height:62px;padding:0 4px}
+.mtr .go.sm{height:84px;font-size:46px}
+.mtr .go.stop{background:transparent;color:var(--o)}
+.mtbl{grid-template-columns:1fr 150px 130px;font-size:25px}
+.mtbl .num{font-size:30px;line-height:1.1}
+.mbar{position:relative;height:120px;margin:18px 18px 0}
+.mbar .trk{position:absolute;left:0;right:0;top:56px;height:10px;background:var(--r2);border-radius:5px}
+.mbar .tk{position:absolute;top:50px;width:2px;height:22px;margin-left:-1px;background:var(--r3)}
+.mbar .tl{position:absolute;top:78px;transform:translateX(-50%);font-size:22px;color:var(--r4)}
+.mbar .mk{position:absolute;top:8px;width:4px;height:64px;margin-left:-2px;background:var(--r4)}
+.mbar .mk b{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:24px;line-height:1;padding:2px 7px;border:2px solid var(--r4);border-radius:6px;background:#000}
+.mbar .mk.live{background:var(--r5);box-shadow:0 0 12px var(--r5);width:8px;margin-left:-4px;top:30px;height:44px;border-radius:4px}
+.mbar .mk.live.stale{opacity:.4}
+.mbar .mk.edge{opacity:.55}
+.mbar .mk.hi b,.mbar .mk.lo b{top:-8px}
+.mbar .mk.lo{top:12px}
+
+/* ---- web app frame and relay panel ---- */
+:root{--r0:#000000;--r1:#260000;--r2:#4d0000;--r3:#880000;--r4:#d60000;--r5:#ff1414;--o:#ff4d00;color-scheme:dark;scrollbar-color:#880000 #260000}   /* --o: light-safe orange, red 255 green 77 blue 0. color-scheme stops the browser's automatic dark mode re-colouring the page */
+html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+.relbtn{display:flex;align-items:center;gap:6px;color:var(--r3);font-size:26px;padding:6px 8px}
+.relbtn i{width:12px;height:12px;border-radius:50%;border:2px solid var(--r3)}
+.relbtn.on{color:var(--r5)}
+.relbtn.on i{background:var(--r5);border-color:var(--r5);box-shadow:0 0 8px var(--r5)}
+.rpanel{width:940px;max-height:720px;border:3px solid var(--r4);border-radius:16px;background:#000;padding:22px 28px;display:flex;flex-direction:column;gap:12px}
+.rpanel h3{margin:0;font-size:40px;font-weight:700}
+.kvs{display:grid;grid-template-columns:260px 1fr;gap:2px 16px;font-size:26px;line-height:1.25}
+.kvs .k{color:var(--r4)}
+.rlog{height:230px;overflow-y:auto;border:2px solid var(--r2);border-radius:8px;padding:8px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:18px;line-height:1.35;color:var(--r4)}
+.rlog div{display:grid;grid-template-columns:64px 130px 1fr;gap:8px;border-bottom:1px solid var(--r1)}
+.rbtns{display:flex;gap:12px}
+.rbtns .chip{flex:1;height:68px;font-size:24px;padding:0 6px}
+
+#splash{position:fixed;inset:0;z-index:1000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 30px;transition:opacity .5s}
+#splash img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100% - 110px);margin:auto 0 0;object-fit:contain}
+#splash .stext{margin-top:20px;font-size:46px;font-weight:700;letter-spacing:.02em;color:var(--o);text-align:center}
+#splash.out{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="app">
+    <div id="segbar"></div>
+    <div id="status"></div>
+    <div id="main"></div>
+    <div id="nav"></div>
+  </div>
+  <div id="overlay"></div>
+</div>
+<div id="splash" role="img" aria-label="F-Stop Timer / Densitometer"><img src="splash.png" alt=""><div class="stext">F-Stop Timer/Densitometer</div>
+</div>
+<script>
+(() => {
+'use strict';
+/* ================= utilities ================= */
+const perf = () => performance.now();
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function fmtStops(n) {              // n = twelfths of a stop
+  if (n === 0) return '0';
+  const a = Math.abs(n), w = Math.floor(a / 12), r = a % 12;
+  let f = '';
+  if (r) { const g = gcd(r, 12); f = (r / g) + '/' + (12 / g); }
+  return (n > 0 ? '+' : '\u2212') + (w ? w : '') + (w && f ? ' ' : '') + f;
+}
+
+
+/* ================= constants ================= */
+const IV = [{ n: 6, l: '1/2' }, { n: 4, l: '1/3' }, { n: 3, l: '1/4' }, { n: 2, l: '1/6' }, { n: 1, l: '1/12' }];
+const PRESETS = [5, 10, 15, 20, 25];
+const NAMES = { IDLE: 'Idle', ARMED: 'Armed', FOCUS: 'Focus', EXPOSING: 'Exposing', GAP: 'Next step', PAUSED: 'Paused', FAULT: 'Fault', SETTLE: 'Waiting' };
+const RUNNING = ['EXPOSING', 'GAP', 'PAUSED', 'SETTLE'];
+const running = s => RUNNING.includes(s);
+const TABS = [['meter', 'Meter'], ['print', 'Print'], ['time', 'Time'], ['strip', 'Strip test'], ['recipe', 'Recipe'], ['dev', 'Develop'], ['log', 'Log'], ['scale', 'Scale'], ['cal', 'Calibrate'], ['set', 'Settings']];
+const SETDEF = {
+  gap: { min: 1, max: 30, step: 1, fmt: v => v + ' s' },
+  lat: { min: 0, max: 500, step: 5, fmt: v => v + ' ms' },
+  focusMin: { opts: [0, 1, 2, 5, 10, 15], fmt: v => (v ? v + ' min' : 'Off') },
+  vol: { min: 0, max: 100, step: 10, fmt: v => v + '%' },
+  dim: { min: 5, max: 50, step: 5, fmt: v => v + '%' },
+  recipThr: { min: 5, max: 120, step: 5, fmt: v => v + ' s' },
+  recipK: { min: 1, max: 1.3, step: 0.02, fmt: v => v.toFixed(2) },
+  greyMax: { min: 10, max: 60, step: 5, fmt: v => v + '%' },
+  shakeT: { min: 0, max: 100, step: 5, fmt: v => (v ? (v / 10).toFixed(1) + ' s' : 'Off') },
+  comp: { min: -20, max: 20, step: 1, fmt: v => (v > 0 ? '+' : '') + v + '%' },
+  devK: { min: 0, max: 10, step: 0.5, fmt: v => (v ? v.toFixed(1) + '% per \u00b0C' : 'Off') }
+};
+
+
+/* ================= paper list (names, type and the makers' process times) ================= */
+// A paper's calibration is always the user's own measurement, so nothing here holds a dose.
+// Process times are only the makers' published figures for tray processing at 20 C. Where a maker gives a range,
+// the preset is the shortest time in it, unless the maker names a recommended time. A paper that is not in this list
+// has no stored times: the times on the Develop tab are then the user's own.
+const FILTRATIONS = ['Multigrade filters', 'Colour head', 'Other filters'];
+const SURFACES = ['Glossy', 'Pearl', 'Satin', 'Semi-matt', 'Matt'];
+const PAPER_LIST = [
+  { key: 'ilford-mgrc', name: 'Ilford Multigrade RC Deluxe', type: 'rc', maker: 'Ilford', tempNote: 'the range Ilford gives for the stop bath and fixer',
+    dev: { devSec: 60, stopSec: 10, fixSec: 30, washSec: 120 },
+    developers: [['1+9', 60], ['1+14', 90], ['Bromo/PQ', 120]], stops: [], fixers: [['Rapid 1+4', 30], ['Rapid 1+9', 60]], washes: [],
+    devCap: 'Developer: Multigrade 1+9 or 1+14, Bromophen or PQ', stopCap: 'Stop bath', fixCap: 'Fixer: Ilford Rapid Fixer dilution', washCap: 'Wash',
+    src: 'Ilford MULTIGRADE RC papers and B&W paper developers data sheets', note: 'Multigrade IV RC Deluxe has the same figures.' },
+  { key: 'ilford-mgfb', name: 'Ilford Multigrade FB Classic', type: 'fb', maker: 'Ilford', tempNote: 'the range Ilford gives for the stop bath and fixer',
+    dev: { devSec: 120, stopSec: 10, fixSec: 60, washSec: 1800 },
+    developers: [['1+9', 120], ['1+14', 180], ['Bromo/PQ', 120]], stops: [], fixers: [['Rapid 1+4', 60], ['Rapid 1+9', 120], ['Ilfofix II', 180]], washes: [],
+    devCap: 'Developer: Multigrade 1+9 or 1+14, Bromophen or PQ', stopCap: 'Stop bath', fixCap: 'Fixer: Ilford Rapid 1+4 or 1+9, Ilfofix II', washCap: 'Wash',
+    src: 'Ilford MULTIGRADE FB CLASSIC and B&W paper developers data sheets', note: 'Ilford gives develop 1:30 to 3:00 (2:00 recommended) and wash 30 to 45 min; the preset wash is 30 min.' },
+  { key: 'kentmere-vcselect', name: 'Kentmere VC Select', type: 'rc', maker: 'Kentmere', tempNote: 'the range Ilford gives for the stop bath and fixer',
+    dev: { devSec: 60, stopSec: 10, fixSec: 30, washSec: 120 },
+    developers: [['1+9', 60], ['1+14', 90], ['Bromo/PQ', 120], ['Kentmere', 90]], stops: [['Ilfostop', 10], ['Kentmere', 20]],
+    fixers: [['Rapid 1+4', 30], ['Kentmere 1+9', 120], ['Kentmere 1+4', 90]], washes: [],
+    devCap: 'Developer: Ilford Multigrade 1+9 or 1+14, Bromophen or PQ, or Kentmere 1+9', stopCap: 'Stop bath: Ilfostop or Kentmere', fixCap: 'Fixer: Ilford Rapid or Kentmere', washCap: 'Wash',
+    src: 'Kentmere VC SELECT RC data sheet and Kentmere paper photochemicals data sheet', note: '' },
+  { key: 'foma-fomaspeed-v3', name: 'Foma Fomaspeed Variant III', type: 'rc', maker: 'Foma', tempNote: '',
+    dev: { devSec: 60, stopSec: 10, fixSec: 90, washSec: 120 },
+    developers: [['Fomatol LQN 1+7', 60]], stops: [], fixers: [['Fomafix 1+5', 90], ['Acid fixer', 180]], washes: [['Above 12 \u00b0C', 120], ['Below 12 \u00b0C', 240]],
+    devCap: 'Developer', stopCap: 'Stop bath', fixCap: 'Fixer', washCap: 'Wash in running water',
+    src: 'Foma FOMASPEED VARIANT III data sheet', note: 'Foma gives develop 60 to 90 s in Fomatol LQN 1+7; the shortest is used.' },
+  { key: 'arista-edu-vcrc', name: 'Arista EDU Ultra VC RC', type: 'rc', maker: 'Freestyle', tempNote: 'the range Freestyle gives for the stop bath',
+    dev: { devSec: 60, stopSec: 10, fixSec: 120, washSec: 180 },
+    developers: [], stops: [], fixers: [], washes: [],
+    devCap: '', stopCap: '', fixCap: '', washCap: '',
+    src: 'Freestyle Arista.EDU Ultra VC RC data sheet', note: 'It gives develop 60 to 90 s, stop at least 10 s, fix 2 to 5 min and wash 3 to 4 min; the shortest of each is used.' }
+];
+const paperPreset = k => PAPER_LIST.find(p => p.key === k) || null;
+
+/* ================= saved state (the app remembers its settings on this tablet) ================= */
+const KEY = 'fstop-papers-v1';         // this app's own saved data. The first version of the app used 'fstop-app-v1' on the same host, so it is only read, never written
+const OLD_KEY = 'fstop-app-v1';
+const defaults = () => ({
+  baseT: 100, iv: 1, off: 0, tab: 'time', rid: 0,
+  set: { gap: 5, lat: 0, focusMin: 5, vol: 60, mute: false, dim: 30, bright: 100, safeAuto: false, recipOn: false, recipThr: 20, recipK: 1.1, greyOn: true, greyMax: 30, shakeT: 0, comp: 0, devK: 0 },
+  recipe: [], saved: [], log: [],
+  scale: { aw: 8, ah: 10, bw: 11, bh: 14 },
+  meter: { dark: 0, ref: null, hi: null, lo: null },     // readings in 0.01 lux, as the probe reported them
+  profile: { name: 'Ilford Multigrade RC Deluxe, satin, Multigrade filters', grades: {} },   // grades: { '2': { hi, sh } }, log2 doses in centilux seconds
+  cal: { grade: 2, data: {} },                            // calibration in progress, per grade
+  print: { grade: 2, place: 0, off: 0 },                  // grade the photographer is printing at, highlight placement and time change, in twelfths of a stop
+  dev: { devSec: 60, stopSec: 10, fixSec: 30, wash: false, washSec: 120, drain: 10 },    // process timer: seconds per bath
+  papers: [], paperId: '', pn: 1      // every paper has its own profile, cal and dev. A.profile, A.cal and A.dev point at the active paper's and are not saved separately
+});
+let A = defaults();
+try {
+  const j = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || 'null');
+  if (j) A = Object.assign(defaults(), j, { set: Object.assign(defaults().set, j.set || {}), scale: Object.assign(defaults().scale, j.scale || {}), meter: Object.assign(defaults().meter, j.meter || {}), profile: Object.assign(defaults().profile, j.profile || {}), cal: Object.assign(defaults().cal, j.cal || {}), print: Object.assign(defaults().print, j.print || {}), dev: Object.assign(defaults().dev, j.dev || {}) });
+} catch (e) { /* storage unavailable: run without it */ }
+initPapers();
+if (!TABS.some(t => t[0] === A.tab)) A.tab = 'time';
+function save() { try { localStorage.setItem(KEY, JSON.stringify(Object.assign({}, A, { profile: undefined, cal: undefined, dev: undefined }))); } catch (e) { /* ignore */ } }
+
+/* ================= app state ================= */
+const U = { pp: null, keypad: null, toast: null, plan: null, runPlan: null, armedSig: '', linkOk: false, rxAt: 0, selStrip: null, segN: 0, everConnected: false, panel: false };
+let Mt = { mode: 0, value: 0, busy: true, over: false, under: false, err: false, n: 0, rxAt: 0 };   // newest probe message
+let R = { metering: false, probe: false, tprobe: false, state: 'IDLE', idx: 0, steps: 0, rem: 0, total: 0, lamp: false, safe: true, safeUser: true, focusRem: null, kind: null, speed: 1, fault: '', pf: null, rxAt: 0 };
+let wakeLock = null;
+
+/* ================= connection log (shown in the relay panel) ================= */
+const MLOG = [];
+const T0 = perf();
+function mlog(dir, text) {
+  MLOG.unshift({ t: (perf() - T0) / 1000, dir, text });
+  if (MLOG.length > 60) MLOG.pop();
+  if (U.panel) renderOverlay();
+}
+function describe(m) {
+  switch (m.type) {
+    case 'ARM': return 'ARM ' + m.plan.kind + ', ' + m.plan.steps.length + ' step(s), gap ' + (m.plan.gapMs / 1000).toFixed(1) + ' s';
+    case 'CONFIG': return 'CONFIG offset ' + m.lat + ' ms, focus timeout ' + (m.focusMs ? m.focusMs / 60000 + ' min' : 'off') + ', volume ' + (m.mute ? 'muted' : m.vol + '%') + ', shake delay ' + (m.shake ? (m.shake / 10).toFixed(1) + ' s' : 'off');
+    case 'FOCUS': return 'FOCUS ' + (m.on ? 'on' : 'off');
+    case 'SAFELIGHT': return 'SAFELIGHT ' + (m.on ? 'on' : 'off');
+    case 'METER': return 'METER ' + ['off', 'lit', 'dark'][m.mode];
+    case 'TEMP': return 'TEMP ' + (m.on ? 'on' : 'off');
+    case 'BEEP': return 'BEEP ' + ['tick', 'step', 'done'][m.kind];
+    default: return m.type;
+  }
+}
+
+/* ================= relay protocol (see docs/PROTOCOL.md) ================= */
+const UUID = { svc: '6f9c0001-3a5b-4c7d-9e21-8b4f1d2a7c10', cmd: '6f9c0002-3a5b-4c7d-9e21-8b4f1d2a7c10', evt: '6f9c0003-3a5b-4c7d-9e21-8b4f1d2a7c10', info: '6f9c0004-3a5b-4c7d-9e21-8b4f1d2a7c10' };
+const PROTOCOL = 1;
+const STATE_NAMES = ['IDLE', 'ARMED', 'FOCUS', 'EXPOSING', 'GAP', 'PAUSED', 'FAULT', 'SETTLE'];
+const KIND_NAMES = ['single', 'strip', 'recipe'];
+const FAULT_TEXT = { 1: 'Link lost in focus mode: enlarger switched off', 2: 'Lamp was on for an hour: switched off' };
+const ARM_ERR_TEXT = { 1: 'busy', 2: 'bad frame', 3: 'incomplete', 4: 'step too long', 5: 'too many steps', 6: 'no plan in progress' };
+const u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+const rd32 = (b, i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+
+function encode(type, p) {                     // returns a list of frames (each at most 20 bytes)
+  switch (type) {
+    case 'PING': return [[0x01]];
+    case 'ARM': {
+      const pl = p.plan, id = (++Ble.planSeq) & 255, n = pl.steps.length;
+      const frames = [[0x10, id, KIND_NAMES.indexOf(pl.kind), n, ...u32(pl.gapMs)]];
+      for (let i = 0; i < n; i += 4) {
+        const c = Math.min(4, n - i), f = [0x11, id, i, c];
+        for (let k = 0; k < c; k++) f.push(...u32(pl.steps[i + k].ms));
+        frames.push(f);
+      }
+      frames.push([0x12, id]);
+      return frames;
+    }
+    case 'START': return [[0x20]];
+    case 'PAUSE': return [[0x21]];
+    case 'RESUME': return [[0x22]];
+    case 'CANCEL': return [[0x23]];
+    case 'FOCUS': return [[0x30, p.on ? 1 : 0]];
+    case 'SAFELIGHT': return [[0x31, p.on ? 1 : 0]];
+    case 'METER': return [[0x32, p.mode & 255]];
+    case 'TEMP': return [[0x33, p.on ? 1 : 0]];
+    case 'BEEP': return [[0x34, p.kind & 255]];
+    case 'CONFIG': {
+      const lat = p.lat & 0xFFFF, sec = Math.round(p.focusMs / 1000) & 0xFFFF;
+      return [[0x40, lat & 255, lat >> 8, sec & 255, sec >> 8, p.vol & 255, (p.mute ? 1 : 0) | (p.safeAuto ? 2 : 0), Math.max(0, Math.min(100, p.shake | 0))]];
+    }
+  }
+  return [];
+}
+function decode(b) {
+  if (!b.length) return null;
+  if (b[0] === 0x81 && b.length >= 18) {
+    const f = b[2], fr = b[13] | (b[14] << 8);
+    return { type: 'STATUS', state: STATE_NAMES[b[1]] || 'IDLE', lamp: !!(f & 1), safe: !!(f & 2), safeUser: !!(f & 4), metering: !!(f & 8), probe: !!(f & 16), tprobe: !!(f & 32), idx: b[3], steps: b[4],
+      rem: rd32(b, 5), total: rd32(b, 9), focusRem: fr === 0xFFFF ? null : fr * 1000, kind: KIND_NAMES[b[15]] || null,
+      pf: b[16] === 0xFF ? null : (STATE_NAMES[b[16]] || null), fault: FAULT_TEXT[b[17]] || '', speed: 1 };
+  }
+  if (b[0] === 0x84 && b.length >= 4) {
+    const v = b[2] | (b[3] << 8);
+    return { type: 'TEMP', ok: !!(b[1] & 1), err: !!(b[1] & 2), centi: v > 32767 ? v - 65536 : v };
+  }
+  if (b[0] === 0x83 && b.length >= 8) {
+    return { type: 'SENSOR', busy: !!(b[1] & 1), over: !!(b[1] & 2), under: !!(b[1] & 4), err: !!(b[1] & 8), mode: b[2], value: rd32(b, 3), n: b[7] };
+  }
+  if (b[0] === 0x82 && b.length >= 2) {
+    switch (b[1]) {
+      case 1: return { type: 'EVENT', ev: 'done', total: rd32(b, 2) };
+      case 2: return { type: 'EVENT', ev: 'cancelled' };
+      case 3: return { type: 'EVENT', ev: 'pedal', long: !!b[2] };
+      case 4: return { type: 'EVENT', ev: 'focus_timeout' };
+      case 5: return { type: 'EVENT', ev: 'fault', text: FAULT_TEXT[b[2]] || 'Relay fault' };
+      case 6: return { type: 'EVENT', ev: 'step_done', idx: b[2] };
+      case 7: return { type: 'EVENT', ev: 'arm_ok', id: b[2] };
+      case 8: return { type: 'EVENT', ev: 'arm_err', id: b[2], code: b[3] };
+    }
+  }
+  return null;
+}
+function toRelay(type, p) {
+  p = p || {};
+  if (type !== 'PING') mlog('App\u2192Relay', describe(Object.assign({ type }, p)));
+  Ble.send(type, p);
+}
+
+/* ================= Bluetooth (Web Bluetooth) ================= */
+const Ble = {
+  supported: typeof navigator !== 'undefined' && !!navigator.bluetooth,
+  dev: null, chars: null, connected: false, connecting: false, want: false,
+  planSeq: 0, info: null, retry: 0, timer: 0, inflight: 0, chain: Promise.resolve(), lastError: '',
+  noteError(e) { this.lastError = (e && e.name === 'NotFoundError') ? 'no relay was chosen' : ((e && e.message) || String(e)); },
+  // Must run from a tap: the browser shows its own pairing list.
+  async choose() {
+    if (!this.supported) return;
+    try {
+      const d = await navigator.bluetooth.requestDevice({ filters: [{ services: [UUID.svc] }, { namePrefix: 'FStop' }], optionalServices: [UUID.svc] });
+      this.attach(d); this.want = true; this.retry = 0;
+      if (this.connected) { try { this.dev.gatt.disconnect(); } catch (e) { /* ignore */ } }
+      await this.connect();
+    } catch (e) { mlog('BLE', 'pairing: ' + ((e && e.message) || e)); this.noteError(e); renderAll(); }
+  },
+  attach(d) {
+    if (this.dev === d) return;
+    if (this.dev) this.dev.removeEventListener('gattserverdisconnected', this.onDisc);
+    this.dev = d; d.addEventListener('gattserverdisconnected', this.onDisc);
+  },
+  onDisc() {
+    Ble.connected = false; Ble.chars = null; mlog('BLE', 'disconnected');
+    renderAll();
+    if (Ble.want) Ble.scheduleRetry();
+  },
+  scheduleRetry() {
+    clearTimeout(this.timer);
+    const d = Math.min(3000, 400 + this.retry * 600); this.retry++;
+    this.timer = setTimeout(() => { this.connect(); }, d);
+  },
+  async connect() {
+    if (!this.dev || this.connecting || this.connected) return;
+    this.connecting = true; renderAll();
+    try {
+      mlog('BLE', 'connecting to ' + (this.dev.name || 'relay'));
+      const server = await this.dev.gatt.connect();
+      const svc = await server.getPrimaryService(UUID.svc);
+      const cmd = await svc.getCharacteristic(UUID.cmd);
+      const evt = await svc.getCharacteristic(UUID.evt);
+      this.info = null;
+      try { const inf = await (await svc.getCharacteristic(UUID.info)).readValue(); this.info = [inf.getUint8(0), inf.getUint8(1), inf.getUint8(2)]; } catch (e) { /* optional */ }
+      if (this.chars && this.chars.evt) this.chars.evt.removeEventListener('characteristicvaluechanged', this.onNotify);
+      evt.addEventListener('characteristicvaluechanged', this.onNotify);
+      await evt.startNotifications();
+      this.chars = { cmd, evt }; this.connected = true; this.retry = 0; this.lastError = '';
+      mlog('BLE', 'connected' + (this.info ? ', protocol ' + this.info[0] + ', firmware ' + this.info[1] + '.' + this.info[2] : ''));
+      if (this.info && this.info[0] !== PROTOCOL) toast('Relay speaks protocol ' + this.info[0] + '; this app needs ' + PROTOCOL + '.', 9000, true);
+    } catch (e) {
+      mlog('BLE', 'connect failed: ' + ((e && e.message) || e)); this.noteError(e);
+      try { this.dev.gatt.disconnect(); } catch (_) { /* ignore */ }
+      if (this.want) this.scheduleRetry();
+    } finally { this.connecting = false; renderAll(); }
+  },
+  onNotify(ev) {
+    const dv = ev.target.value, b = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength), m = decode(b);
+    if (m) onRelayMsg(m);
+  },
+  disconnect() {
+    this.want = false; clearTimeout(this.timer);
+    try { if (this.dev && this.dev.gatt.connected) this.dev.gatt.disconnect(); } catch (e) { /* ignore */ }
+    this.connected = false; this.chars = null; renderAll();
+  },
+  // Writes go out one at a time, in order (a Bluetooth link allows one operation at a time).
+  send(type, p) {
+    if (!this.connected || !this.chars) return false;
+    if (type === 'PING' && this.inflight > 2) return true;
+    const frames = encode(type, p), ch = this.chars.cmd;
+    this.inflight++;
+    this.chain = this.chain.then(async () => {
+      for (const f of frames) {
+        const buf = new Uint8Array(f);
+        if (ch.writeValueWithResponse) await ch.writeValueWithResponse(buf); else await ch.writeValue(buf);
+      }
+    }).catch(e => { if (type !== 'PING') mlog('BLE', 'write failed: ' + ((e && e.message) || e)); }).finally(() => { this.inflight--; });
+    return true;
+  }
+};
+
+/* ================= keep the screen on, full screen ================= */
+async function wake() {
+  try {
+    if ('wakeLock' in navigator && document.visibilityState === 'visible' && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+document.addEventListener('pointerdown', wake);
+async function goFullscreen() {
+  try {
+    if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+    if (screen_orientation() && screen_orientation().lock) await screen_orientation().lock('landscape');
+  } catch (e) { mlog('App', 'full screen: ' + ((e && e.message) || e)); }
+  if (U.panel) renderOverlay();
+}
+function screen_orientation() { return (window.screen && window.screen.orientation) || null; }
+
+
+/* ================= exposure maths ================= */
+const nomTime = (base, n) => base * Math.pow(2, n / 12);
+function Rcp(t) {                                   // reciprocity compensation (placeholder power law)
+  if (!A.set.recipOn) return t;
+  const T = A.set.recipThr;
+  return t <= T ? t : T * Math.pow(t / T, A.set.recipK);
+}
+const actTime = (base, n) => Rcp(nomTime(base, n));
+const compF = () => 1 + (A.set.comp || 0) / 100;                       // dry-down or toning compensation, single exposures and recipes only
+const mainNomRaw = () => nomTime(A.baseT / 10, A.off);
+const mainNom = () => mainNomRaw() * compF();
+const mainAct = () => Rcp(mainNom());
+const ivN = () => IV[A.iv].n;
+
+function buildPlan(kind) {
+  const b = A.baseT / 10, n = ivN(), ms = x => Math.max(0, Math.round(x * 1000)), gapMs = A.set.gap * 1000;
+  if (kind === 'strip') {
+    const steps = []; let prev = 0;
+    for (let k = 0; k < 6; k++) {
+      const tot = actTime(b, k * n);
+      steps.push({ ms: ms(tot - prev), label: k ? 'Cover strip ' + (7 - k) : 'Expose the whole sheet', k, reach: tot, nomReach: nomTime(b, k * n), stops: k * n });
+      prev = tot;
+    }
+    return { kind, steps, gapMs, meta: 'Strip test, base ' + b.toFixed(1) + ' s, ' + IV[A.iv].l + ' stop steps' };
+  }
+  const pt = kind === 'single' && A.tab === 'print' ? printState().t : null;       // on the Print tab the exposure is the time shown there
+  const m = (pt || nomTime(b, A.off)) * compF(), main = Rcp(m);
+  if (kind === 'recipe') {
+    const steps = [{ ms: ms(main), label: 'Main exposure', stops: A.off, cues: [] }];
+    let bi = 0, di = 0;
+    A.recipe.forEach(e => {
+      if (e.type === 'burn') { bi++; steps.push({ ms: ms(Rcp(m * Math.pow(2, e.n / 12)) - main), label: 'Burn ' + bi + ' (' + fmtStops(e.n) + ')', stops: A.off + e.n }); }
+      else { di++; steps[0].cues.push({ label: 'Dodge ' + di + ' (' + fmtStops(-e.n) + ')', holdMs: ms(main - Rcp(m * Math.pow(2, -e.n / 12))) }); }
+    });
+    const bits = A.recipe.map(e => (e.type === 'burn' ? 'burn ' + fmtStops(e.n) : 'dodge ' + fmtStops(-e.n)));
+    return { kind, steps, gapMs, meta: 'Recipe, main ' + main.toFixed(1) + ' s' + (bits.length ? ', ' + bits.join(', ') : '') };
+  }
+  return { kind: 'single', steps: [{ ms: ms(main), label: 'Exposure', stops: A.off }], gapMs: 0, nom: m, grade: pt ? gradeLabel(A.print.grade) : null,
+    meta: pt ? 'Print time, grade ' + gradeLabel(A.print.grade) + ', ' + main.toFixed(1) + ' s' : 'Base ' + b.toFixed(1) + ' s, ' + fmtStops(A.off) + ' stop, ' + main.toFixed(1) + ' s' };
+}
+
+
+/* ================= screen-side logic ================= */
+function armKind() {
+  if (A.tab === 'strip') return 'strip';
+  if (A.tab === 'recipe') return 'recipe';
+  if (A.tab === 'time') return 'single';
+  if (A.tab === 'print') return 'single';
+  return U.plan ? U.plan.kind : 'single';
+}
+function syncArm(force) {
+  if (!U.linkOk || running(R.state)) return;
+  if (A.tab === 'print' && !printState().t) return;     // nothing to run from here yet: keep whatever was armed, as on the other tabs
+  const plan = buildPlan(armKind());
+  const sig = JSON.stringify(plan);
+  if (!force && sig === U.armedSig) return;
+  U.armedSig = sig; U.plan = plan;
+  toRelay('ARM', { plan });
+}
+function pushConfig() {
+  const s = A.set;
+  toRelay('CONFIG', { lat: s.lat, focusMs: s.focusMin * 60000, vol: s.vol, mute: s.mute, safeAuto: s.safeAuto, shake: s.shakeT });
+}
+function onReconnect() {
+  mlog('UI', 'relay link up: sending settings and the armed plan');
+  pushConfig(); U.armedSig = ''; syncArm(true);
+}
+function onRelayMsg(m) { if (m.type === 'STATUS') onStatus(m); else if (m.type === 'EVENT') onEvent(m); else if (m.type === 'SENSOR') onSensor(m); else if (m.type === 'TEMP') onTemp(m); }
+function onStatus(m) {
+  const prev = R;
+  R = Object.assign({}, m, { rxAt: perf() }); U.rxAt = R.rxAt;
+  let changed = false;
+  if (!U.linkOk) { U.linkOk = true; U.everConnected = true; changed = true; onReconnect(); }
+  if (running(R.state) && !running(prev.state)) {
+    U.runPlan = U.plan ? JSON.parse(JSON.stringify(U.plan)) : null;
+    if (U.runPlan && U.runPlan.steps.length !== R.steps) U.runPlan = null;
+  }
+  ['state', 'idx', 'lamp', 'safe', 'safeUser', 'steps', 'fault', 'kind', 'pf', 'metering', 'probe', 'tprobe'].forEach(k => { if (prev[k] !== R[k]) changed = true; });
+  if (prev.metering && !R.metering) Mt = { mode: 0, value: 0, busy: true, over: false, under: false, err: false, n: 0, rxAt: 0 };
+  if (changed) renderAll();
+}
+function onEvent(m) {
+  switch (m.ev) {
+    case 'done': addLog(m.total); toast('Exposure complete. Saved to the log.'); calRecord(); break;
+    case 'cancelled': U.calRun = null; toast('Cancelled'); break;
+    case 'pedal': toast('Foot pedal ' + (m.long ? 'long press' : 'press')); break;
+    case 'focus_timeout': toast('Focus light switched off (timeout)'); break;
+    case 'fault': toast(m.text, 8000, true); break;
+    case 'arm_err': if (m.code !== 1) toast('The relay refused the plan: ' + (ARM_ERR_TEXT[m.code] || m.code), 6000, true); break;
+  }
+}
+function addLog(totalMs) {
+  const p = U.runPlan || U.plan; if (!p) return;
+  A.log.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), ts: Date.now(), kind: p.kind, meta: p.meta, total: totalMs, note: '', paper: A.profile.name });
+  if (A.log.length > 60) A.log.pop();
+  save(); if (A.tab === 'log') renderMainView();
+}
+
+/* ================= light probe: readings in stops (see docs/PROTOCOL.md, SENSOR) ================= */
+// All readings are raw probe values in 0.01 lux. The dark offset is subtracted here, never on the relay.
+const netLux = (raw, dark) => Math.max(0, raw - dark);
+const stopsBetween = (a, b) => (a > 0 && b > 0 ? Math.log2(a / b) : null);        // how many stops a is brighter than b
+const logDensity = (a, bright) => (a > 0 && bright > 0 ? Math.log10(bright / a) : null);   // log D of a, relative to the brightest
+const BAR_MIN = -3, BAR_MAX = 7;                                                      // stops shown on the bar, relative to the reference (the highlight is the dimmest light, so most readings are above it)
+function meterModel() {
+  const m = A.meter, dark = m.dark;
+  const net = v => (v == null ? null : netLux(v, dark));
+  const hi = net(m.hi), lo = net(m.lo), ref = net(m.ref != null ? m.ref : m.hi);
+  const fresh = R.metering && perf() - Mt.rxAt < 1200;
+  const live = fresh && Mt.mode === 1 ? netLux(Mt.value, dark) : 0;
+  const stored = [net(m.ref), hi, lo].filter(v => v != null && v > 0);
+  const bright = stored.length ? Math.max(...stored) : null;
+  return {
+    fresh, live, ref, hi, lo, bright,
+    liveStops: ref ? stopsBetween(live, ref) : null,
+    liveD: bright ? logDensity(live, bright) : null,
+    hiStops: ref ? stopsBetween(hi, ref) : null, loStops: ref ? stopsBetween(lo, ref) : null,
+    hiD: bright ? logDensity(hi, bright) : null, loD: bright ? logDensity(lo, bright) : null,
+    gap: stopsBetween(lo, hi)                                    // how many stops brighter the shadow reading is than the highlight reading
+  };
+}
+function meterStatusText(mm) {
+  if (!U.linkOk) return 'No link to the relay';
+  if (!R.probe) return 'No light probe fitted';
+  if (U.zero) return 'Reading the dark offset. Keep the probe covered.';
+  if (!R.metering) return 'Metering is off. Press Start metering.';
+  if (!mm.fresh) return 'Waiting for the probe...';
+  if (Mt.err) return 'Probe read error. Check the cable.';
+  if (Mt.over) return 'Too bright for the probe. Reading not valid.';
+  if (Mt.busy) return 'Settling...';
+  if (mm.gap != null && mm.gap < 0) return 'The shadow reading is dimmer than the highlight reading. Check which areas you metered.';
+  if (Mt.under || mm.live <= 0) return 'Very low light: reading is unreliable' + (mm.live <= 0 ? ' (at or below the dark offset)' : '') + '.';
+  return 'Steady';
+}
+const canStore = mm => !!(U.linkOk && R.probe && R.metering && Mt.mode === 1 && mm.fresh && !Mt.busy && !Mt.over && !Mt.err && mm.live > 0);
+const fmtS = v => (v == null ? '\u2014' : fmtStops(Math.round(v * 12)));
+const fmtD = v => (v == null ? '\u2014' : v.toFixed(2));
+function toRel(s) { return clamp((s - BAR_MIN) / (BAR_MAX - BAR_MIN), 0, 1) * 100; }
+function meterBarHTML() {
+  let t = '';
+  for (let s = BAR_MIN; s <= BAR_MAX; s++) t += '<i class="tk" style="left:' + toRel(s).toFixed(2) + '%"></i><span class="tl" style="left:' + toRel(s).toFixed(2) + '%">' + (s === 0 ? 'ref' : s > 0 ? '+' + s : '\u2212' + (-s)) + '</span>';
+  return '<div class="mbar" id="mbar"><div class="trk"></div>' + t +
+    '<div class="mk hi" id="mk-hi"><b>H</b></div><div class="mk lo" id="mk-lo"><b>S</b></div><div class="mk live" id="mk-live"></div></div>';
+}
+function meterTableHTML(mm) {
+  const row = (name, st, d) => '<div>' + name + '</div><div class="num">' + fmtS(st) + '</div><div class="num">' + fmtD(d) + '</div>';
+  return '<div class="h">Reading</div><div class="h">Stops</div><div class="h">log D</div>' +
+    row('Highlight', mm.hiStops, mm.hiD) + row('Shadow', mm.loStops, mm.loD) +
+    '<div>Shadow above highlight</div><div class="num">' + (mm.gap == null ? '\u2014' : fmtS(mm.gap)) + '</div><div class="num">' + (mm.gap == null ? '\u2014' : fmtD(mm.gap * Math.log10(2))) + '</div>';
+}
+function viewMeter() {
+  const mm = meterModel(), d = U.linkOk && R.probe && !U.zero ? '' : 'disabled';
+  const refNote = A.meter.ref != null ? 'Reference set' : A.meter.hi != null ? 'Reference: the highlight' : 'No reference yet';
+  return '<div class="mtr"><div>' +
+    '<div class="lbl" id="mstat">' + esc(meterStatusText(mm)) + '</div>' +
+    '<div class="readout"><div><div class="lbl">Stops from reference</div><div class="num" id="mstops">\u2014</div></div><div><div class="lbl">Density, log D</div><div class="num" id="mdens">\u2014</div></div></div>' +
+    '<div class="note" id="mraw"></div>' + meterBarHTML() +
+    '<div class="note">' + esc(refNote) + '. Bar: 3 stops below to 7 above the reference.</div>' +
+    '<div class="note">Highlight: probe on the part that should print lightest (densest negative, dimmest light). Shadow: the part that should print darkest (thinnest negative, brightest light).</div>' +
+    '</div><div class="rcol">' +
+    '<button class="btn go sm' + (R.metering ? ' stop' : '') + '" data-act="mstart" ' + d + '>' + (R.metering ? 'Stop metering' : 'Start metering') + '</button>' +
+    '<div class="row" style="margin:0">' + B('mhi', 'Store highlight', 'chip', 'id="bhi" disabled') + B('mlo', 'Store shadow', 'chip', 'id="blo" disabled') + '</div>' +
+    '<div class="row" style="margin:0">' + B('mref', 'Set reference', 'chip', 'id="bref" disabled') + B('mzero', 'Zero probe', 'chip', d) + '</div>' +
+    '<div class="tbl mtbl" id="mtbl">' + meterTableHTML(mm) + '</div>' +
+    '<div class="row" style="margin:0">' + B('mclear', 'Clear readings', 'chip', (A.meter.ref != null || A.meter.hi != null || A.meter.lo != null) ? '' : 'disabled') + '</div>' +
+    '<div class="note">Dark offset ' + (A.meter.dark / 100).toFixed(2) + ' lx. To measure it, cover the probe and press Zero probe.</div>' +
+    '</div></div>';
+}
+// Updates the numbers in place, so a tap is never lost to a re-render.
+function updateMeterLive() {
+  if (A.tab === 'cal') { updateCalLive(); return; }
+  if (A.tab !== 'meter' || running(R.state)) return;
+  const mm = meterModel(), set = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== v) el.textContent = v; };
+  set('mstat', meterStatusText(mm));
+  const show = mm.fresh && Mt.mode === 1 && !Mt.over && !Mt.err && mm.live > 0;
+  set('mstops', show ? fmtS(mm.liveStops) : '\u2014');
+  set('mdens', show ? fmtD(mm.liveD) : '\u2014');
+  const st = document.getElementById('mstops'), dn = document.getElementById('mdens');
+  [st, dn].forEach(el => { if (el) el.classList.toggle('stale', !!(show && Mt.busy)); });
+  set('mraw', mm.fresh && Mt.mode === 1 ? 'Probe ' + (Mt.value / 100).toFixed(2) + ' lx raw, ' + (mm.live / 100).toFixed(2) + ' lx after the dark offset' + (show && mm.liveStops != null ? ', ' + mm.liveStops.toFixed(2) + ' stops' : '') : '');
+  const mk = (id, s) => { const el = document.getElementById(id); if (!el) return; el.style.display = s == null ? 'none' : ''; if (s != null) { el.style.left = toRel(s).toFixed(2) + '%'; el.classList.toggle('edge', s < BAR_MIN || s > BAR_MAX); } };
+  mk('mk-hi', mm.hiStops); mk('mk-lo', mm.loStops); mk('mk-live', show ? mm.liveStops : null);
+  const live = document.getElementById('mk-live'); if (live) live.classList.toggle('stale', !!Mt.busy);
+  const ok = canStore(mm);
+  ['bhi', 'blo', 'bref'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !ok; });
+  const t = document.getElementById('mtbl'), h = meterTableHTML(mm); if (t && t.dataset.h !== h) { t.innerHTML = h; t.dataset.h = h; }
+}
+function onSensor(m) {
+  Mt = Object.assign({}, m, { rxAt: perf() });
+  if (U.zero && m.mode === 2 && !m.busy && !m.err && !m.over) {      // dark offset read: keep it and switch metering off
+    A.meter.dark = m.value; U.zero = null; save(); toRelay('METER', { mode: 0 });
+    toast('Dark offset set to ' + (m.value / 100).toFixed(2) + ' lx'); renderAll(); return;
+  }
+  updateMeterLive();
+}
+function startZero() {
+  if (!U.linkOk || !R.probe || running(R.state)) return;
+  U.zero = { t: perf() }; toRelay('METER', { mode: 2 }); renderAll();
+}
+function storeReading(k) {
+  const mm = meterModel(); if (!canStore(mm)) return;
+  A.meter[k] = Mt.value; save();
+  toast({ hi: 'Highlight stored', lo: 'Shadow stored', ref: 'Reference set' }[k]); updateMeterLive(); renderMainView();
+}
+
+/* ================= papers: each one keeps its own calibration, grades and process times ================= */
+// A.profile, A.cal and A.dev always point at the active paper's own objects, so the print, calibrate and develop code works on whichever paper is active.
+const activePaper = () => A.papers.find(p => p.id === A.paperId) || A.papers[0];
+const paperShort = n => String(n).replace(/Multigrade/gi, 'MG');
+const gradeCount = p => Object.keys(p.profile.grades).length;
+function initPapers() {                                     // after loading: a first run, or data saved before papers existed, gets one paper
+  const dd = defaults();
+  if (!Array.isArray(A.papers) || !A.papers.some(p => p && typeof p === 'object')) {
+    const nm = typeof A.profile.name === 'string' && A.profile.name.trim() ? A.profile.name.trim() : dd.profile.name;
+    A.papers = [{ id: 'p1', name: nm, type: 'rc', preset: /^Ilford Multigrade RC Deluxe/i.test(nm) ? 'ilford-mgrc' : '', profile: A.profile, cal: A.cal, dev: A.dev }];
+    A.pn = 1;
+  }
+  A.papers = A.papers.filter(p => p && typeof p === 'object');
+  if (!(A.pn >= 1)) A.pn = A.papers.length;
+  const seen = {};
+  A.papers.forEach((p, i) => {
+    if (typeof p.id !== 'string' || !p.id || seen[p.id]) { let id; do { id = 'p' + (++A.pn); } while (seen[id]); p.id = id; }
+    seen[p.id] = true;
+    p.name = typeof p.name === 'string' && p.name.trim() ? p.name.trim().slice(0, 80) : 'Paper ' + (i + 1);
+    p.type = p.type === 'fb' ? 'fb' : 'rc';
+    if (!paperPreset(p.preset)) p.preset = '';
+    const g = p.profile && typeof p.profile.grades === 'object' && p.profile.grades ? p.profile.grades : {};
+    p.profile = { name: p.name, grades: g };
+    p.cal = Object.assign(dd.cal, p.cal && typeof p.cal === 'object' ? p.cal : {});
+    if (!p.cal.data || typeof p.cal.data !== 'object') p.cal.data = {};
+    p.dev = Object.assign(dd.dev, p.dev && typeof p.dev === 'object' ? p.dev : {});
+  });
+  const a = A.papers.find(p => p.id === A.paperId) || A.papers[0];
+  A.paperId = a.id; A.profile = a.profile; A.cal = a.cal; A.dev = a.dev;
+}
+const uniqueName = (name, exceptId) => {
+  const base = String(name).trim().slice(0, 80) || 'Paper'; let n = base, i = 2;
+  while (A.papers.some(p => p.id !== exceptId && p.name.toLowerCase() === n.toLowerCase())) n = base + ' (' + (i++) + ')';
+  return n;
+};
+const newPaperId = () => { let id; do { id = 'p' + (++A.pn); } while (A.papers.some(p => p.id === id)); return id; };
+function makePaper(name, type, preset) {                    // a new, uncalibrated paper. Its times come from the maker's figures when it has them
+  const pre = paperPreset(preset), dd = defaults(), nm = uniqueName(name);
+  const p = { id: newPaperId(), name: nm, type: pre ? pre.type : type === 'fb' ? 'fb' : 'rc', preset: pre ? pre.key : '', profile: { name: nm, grades: {} }, cal: dd.cal, dev: Object.assign(dd.dev, pre ? pre.dev : {}) };
+  A.papers.push(p); return p;
+}
+function usePaper(id) {
+  const p = A.papers.find(x => x.id === id); if (!p) return false;
+  A.paperId = p.id; A.profile = p.profile; A.cal = p.cal; A.dev = p.dev; p.profile.name = p.name;
+  A.print.off = 0; U.calRun = null;                         // a time change, or a strip set up for calibration, belongs to the paper it was made for
+  return true;
+}
+function renamePaper(id, name) {
+  const p = A.papers.find(x => x.id === id), nm = String(name).trim().slice(0, 80); if (!p || !nm) return false;
+  p.name = uniqueName(nm, id); p.profile.name = p.name; return true;
+}
+function dupPaper(id) {                                     // a starting point for another surface of the same paper. It has to be re-checked
+  const src = A.papers.find(x => x.id === id); if (!src) return null;
+  const cp = JSON.parse(JSON.stringify(src)); cp.id = newPaperId(); cp.name = uniqueName(src.name + ' copy'); cp.profile.name = cp.name;
+  cp.copiedFrom = src.name; delete cp.recheck; if (gradeCount(cp)) cp.recheck = true;
+  A.papers.splice(A.papers.indexOf(src) + 1, 0, cp); usePaper(cp.id); return cp;
+}
+function delPaper(id) {
+  const i = A.papers.findIndex(x => x.id === id); if (i < 0 || A.papers.length < 2) return false;
+  A.papers.splice(i, 1); if (A.paperId === id) usePaper(A.papers[Math.max(0, i - 1)].id); return true;
+}
+const pickName = q => q.base === 'custom' ? q.custom : (paperPreset(q.base) || { name: '' }).name;
+const addName = q => { const b = pickName(q); return b ? b + (q.surface ? ', ' + q.surface.toLowerCase() : '') + ', ' + q.filt : ''; };
+function paperOverlayHTML() {
+  const q = U.pp, kinds = { rc: 'RC', fb: 'Fibre' };
+  const head = t => '<div class="pph">' + t + '</div>';
+  if (q.mode === 'pick') {
+    const rows = A.papers.map(p => B('ppsel', '<span class="pn">' + esc(p.name) + '</span><span class="pm">' + kinds[p.type] + ', ' + gradeCount(p) + ' grade' + (gradeCount(p) === 1 ? '' : 's') + '</span>', 'plrow' + (p.id === A.paperId ? ' on' : ''), 'data-a="' + p.id + '"')).join('');
+    return head('Paper') + '<div class="pplist">' + rows + '</div><div class="row" style="margin:0">' + B('ppclose', 'Close', 'chip', '') + (A.tab === 'cal' ? '' : B('tab', 'Add or edit papers', 'chip', 'data-a="cal"')) + '</div>';
+  }
+  if (q.mode === 'add') {
+    const list = PAPER_LIST.map(p => B('ppbase', '<span class="pn">' + esc(p.name) + '</span><span class="pm">' + kinds[p.type] + '</span>', 'plrow' + (q.base === p.key ? ' on' : ''), 'data-a="' + p.key + '"')).join('') +
+      B('ppbase', '<span class="pn">' + (q.custom ? esc(q.custom) : 'Another paper (type a name)') + '</span><span class="pm">' + kinds[q.type] + '</span>', 'plrow' + (q.base === 'custom' ? ' on' : ''), 'data-a="custom"');
+    const nm = addName(q), pre = paperPreset(q.base);
+    const chipsOf = (arr, sel, act) => '<div class="row" style="margin:0;flex-wrap:wrap">' + arr.map(x => B(act, esc(x), 'chip' + (sel === x ? ' on' : ''), 'data-a="' + esc(x) + '"')).join('') + '</div>';
+    return head('Add a paper') + '<div class="ppcols"><div class="pplist">' + list + '</div><div class="ppopts">' +
+      '<div class="lbl">Surface (optional)</div>' + chipsOf(SURFACES, q.surface, 'ppsurf') +
+      '<div class="lbl">Filtration. A colour head and a filter drawer need separate papers</div>' + chipsOf(FILTRATIONS, q.filt, 'ppfilt') +
+      (q.base === 'custom' ? '<div class="lbl">Paper base</div><div class="row" style="margin:0">' + B('pptype', 'Resin-coated', 'chip' + (q.type === 'rc' ? ' on' : ''), 'data-a="rc"') + B('pptype', 'Fibre-based', 'chip' + (q.type === 'fb' ? ' on' : ''), 'data-a="fb"') + '</div>' : '') +
+      '<div class="note ppprev">' + (nm ? 'Name: ' + esc(nm) + '. ' + (pre ? 'It starts with the maker\u2019s process times.' : 'No maker\u2019s times are stored for it, so you enter your own.') + ' It needs its own calibration.' : 'Pick a paper from the list.') + '</div></div></div>' +
+      '<div class="row" style="margin:0">' + B('ppclose', 'Cancel', 'chip', '') + B('ppgo', 'Add paper', 'chip', nm ? '' : 'disabled') + '</div>';
+  }
+  if (q.mode === 'del') {
+    const p = A.papers.find(x => x.id === q.id) || { name: '' };
+    return head('Delete this paper?') + '<div class="ppmsg">' + esc(p.name) + '</div><div class="note">Its calibrated grades, strip data and process times are removed from this tablet. Export first if you want a copy.</div>' +
+      '<div class="row" style="margin:0">' + B('ppclose', 'Keep it', 'chip', '') + B('ppdelgo', 'Delete', 'chip', '') + '</div>';
+  }
+  // name entry: our own red keyboard, because the tablet\u2019s keyboard is bright white
+  const up = q.shift || !q.buf;
+  const key = (k, label, span, cls) => '<button class="kbk' + (cls ? ' ' + cls : '') + '" data-act="kb" data-a="' + k + '" style="grid-column:span ' + (span || 1) + '">' + (label == null ? k : label) + '</button>';
+  const ltr = s => s.split('').map(c => key(c, /[a-z]/.test(c) && up ? c.toUpperCase() : c)).join('');
+  return head(q.purpose === 'rename' ? 'Paper name' : 'Name of the paper') + '<div class="kbd">' + esc(q.buf) + '<i class="caret"></i></div><div class="kbg">' +
+    ltr('1234567890') + ltr('qwertyuiop') + ltr('asdfghjkl') + key('back', '\u232b') + key('shift', '\u21e7', 1, q.shift ? 'on' : '') + ltr('zxcvbnm') + key('-') + key('+') +
+    key('cancel', 'Cancel', 2) + key(' ', 'space', 3) + key(',') + key('.') + key('/') + key('ok', 'OK', 2, 'ok') + '</div>';
+}
+function kbPress(k) {
+  const q = U.pp; if (!q || q.mode !== 'name') return;
+  if (k === 'cancel') { U.pp = q.ret || null; }
+  else if (k === 'back') q.buf = q.buf.slice(0, -1);
+  else if (k === 'shift') q.shift = !q.shift;
+  else if (k === 'ok') {
+    const nm = q.buf.trim();
+    if (!nm) { toast('Type a name first', 3000, true); return; }
+    if (q.purpose === 'rename') { renamePaper(q.id, nm); U.pp = null; toast('Paper named ' + activePaper().name); changed(); return; }
+    const r = q.ret; r.custom = nm.slice(0, 80); r.base = 'custom'; U.pp = r;
+  } else if (q.buf.length < 60 && k.length === 1) {
+    const up = q.shift || !q.buf;
+    q.buf += /[a-z]/.test(k) && up ? k.toUpperCase() : k; q.shift = false;
+  }
+  renderOverlay();
+}
+function paperAct(name, a) {                                // buttons of the paper overlay and the Calibrate tab's paper row
+  switch (name) {
+    case 'pppick': if (!running(R.state)) { U.keypad = null; U.pp = { mode: 'pick' }; renderOverlay(); } break;
+    case 'ppclose': U.pp = null; renderOverlay(); break;
+    case 'ppsel': if (usePaper(a)) { U.pp = null; toast('Paper: ' + A.profile.name); changed(); } break;
+    case 'ppadd': U.pp = { mode: 'add', base: '', custom: '', type: 'rc', surface: '', filt: FILTRATIONS[0] }; renderOverlay(); break;
+    case 'ppbase': if (a === 'custom') U.pp = { mode: 'name', purpose: 'custom', buf: U.pp.custom || '', shift: false, ret: U.pp }; else U.pp.base = a; renderOverlay(); break;
+    case 'ppsurf': U.pp.surface = U.pp.surface === a ? '' : a; renderOverlay(); break;
+    case 'ppfilt': U.pp.filt = a; renderOverlay(); break;
+    case 'pptype': U.pp.type = a === 'fb' ? 'fb' : 'rc'; renderOverlay(); break;
+    case 'ppgo': { const q = U.pp, nm = addName(q); if (!nm) break; const p = makePaper(nm, q.type, q.base === 'custom' ? '' : q.base); usePaper(p.id); U.pp = null; toast('Added ' + p.name + '. Calibrate it before printing.', 6000); changed(); break; }
+    case 'pprename': { const p = activePaper(); U.pp = { mode: 'name', purpose: 'rename', id: p.id, buf: p.name, shift: false, ret: null }; renderOverlay(); break; }
+    case 'ppdup': { const cp = dupPaper(A.paperId); if (cp) { U.pp = { mode: 'name', purpose: 'rename', id: cp.id, buf: cp.name, shift: false, ret: null }; toast('Copied. Name it, then re-check at least one grade.', 6000); changed(); } break; }
+    case 'ppdel': if (A.papers.length > 1) { U.pp = { mode: 'del', id: A.paperId }; renderOverlay(); } break;
+    case 'ppdelgo': { const nm = activePaper().name; if (delPaper(U.pp.id)) toast('Deleted ' + nm + '. Now using ' + A.profile.name, 6000); U.pp = null; changed(); break; }
+    case 'kb': kbPress(a); break;
+  }
+}
+function paperRowHTML() {                                    // top of the Calibrate tab
+  const ap = activePaper();
+  return '<div class="paprow"><button class="btn ppick" data-act="pppick"><small>Paper. Tap to switch</small><b>' + esc(ap.name) + '</b></button>' +
+    B('ppadd', 'Add paper', 'chip', '') + B('pprename', 'Rename', 'chip', '') + B('ppdup', 'Duplicate', 'chip', '') + B('ppdel', 'Delete', 'chip', A.papers.length < 2 ? 'disabled' : '') + '</div>';
+}
+const recheckText = () => { const p = activePaper(); return p.recheck ? 'Copied from ' + p.copiedFrom + '. Measure at least one grade again on this paper before relying on it.' : ''; };
+
+/* ================= paper profile, print time and tone scale ================= */
+// A profile holds, per Multigrade filter grade, two doses measured on blank paper (log2 of centilux seconds):
+//   hi = the dose that first gives a visible tone (the print highlight), sh = the dose that gives full black.
+// Doses use nominal times (before reciprocity compensation), so they match the times typed on the Time tab.
+const GRADES = [{ p: -1, l: '00' }, { p: 0, l: '0' }, { p: 0.5, l: '0.5' }, { p: 1, l: '1' }, { p: 1.5, l: '1.5' }, { p: 2, l: '2' },
+  { p: 2.5, l: '2.5' }, { p: 3, l: '3' }, { p: 3.5, l: '3.5' }, { p: 4, l: '4' }, { p: 4.5, l: '4.5' }, { p: 5, l: '5' }];
+const gradeLabel = p => (GRADES.find(g => g.p === p) || { l: String(p) }).l;
+const KEY_P = p => String(p);
+// Doses at grade p: measured, or interpolated in a straight line between the nearest measured grades (assumes equal filter steps).
+// Outside the measured grades there is no answer, because extrapolating would be a guess.
+function gradeDoses(prof, p) {
+  const g = (prof && prof.grades) || {};
+  if (g[KEY_P(p)]) return { hi: g[KEY_P(p)].hi, sh: g[KEY_P(p)].sh, how: 'measured' };
+  const ks = Object.keys(g).map(Number).sort((a, b) => a - b);
+  const lo = ks.filter(k => k < p).pop(), up = ks.find(k => k > p);
+  if (lo === undefined || up === undefined) return null;
+  const f = (p - lo) / (up - lo), a = g[KEY_P(lo)], b = g[KEY_P(up)];
+  return { hi: a.hi + f * (b.hi - a.hi), sh: a.sh + f * (b.sh - a.sh), how: 'interpolated' };
+}
+// Time (seconds) that puts the highlight reading Lh (centilux) place12 twelfths of a stop above the paper's first tone.
+const printTime = (d, Lh, place12) => (Lh > 0 ? Math.pow(2, d.hi + place12 / 12) / Lh : null);
+// Where a reading L lands at time t: 0 = first tone, 1 = full black.
+const tonePos = (d, L, t) => (L > 0 && t > 0 ? (Math.log2(L * t) - d.hi) / (d.sh - d.hi) : null);
+// Shape between the two measured end points is a smooth S, not measured.
+const toneLevel = f => { const x = clamp(f, 0, 1); return x * x * (3 - 2 * x); };       // 0 = paper white, 1 = full black
+// True grey only while setting up. Anything that could mean paper is exposed, or the lamp state is unknown, gets red.
+const toneModeFor = s => (s.greyOn && s.linkOk && !s.metering && !s.lamp && (s.state === 'IDLE' || s.state === 'ARMED') ? 'grey' : 'red');
+function toneColor(level, mode, cap) {
+  const y = 1 - level;
+  if (mode === 'grey') { const v = Math.round(255 * cap * y); return 'rgb(' + v + ',' + v + ',' + v + ')'; }
+  return 'rgb(' + Math.round(255 * 0.85 * y) + ',0,0)';
+}
+const modeState = () => ({ greyOn: A.set.greyOn, linkOk: U.linkOk, metering: R.metering, lamp: R.lamp, state: R.state });
+// Dose of a calibration strip test pair for one grade. tot = nominal seconds of the six strips' steps, strip s received tot[6 - s].
+function calcGrade(e) {
+  if (!e || !e.hi || !e.sh || !e.hi.pick || !e.sh.pick || !(e.hi.L > 0) || !(e.sh.L > 0)) return null;
+  const dose = r => Math.log2(r.L * r.tot[6 - r.pick]);
+  const hi = dose(e.hi), sh = dose(e.sh);
+  return sh > hi ? { hi, sh } : { error: 'The shadow strip is not darker than the highlight strip. Check the picks.' };
+}
+const calEntry = g => A.cal.data[KEY_P(g)] || (A.cal.data[KEY_P(g)] = {});
+function syncProfile(g) {
+  const r = calcGrade(A.cal.data[KEY_P(g)]);
+  if (r && !r.error) { A.profile.grades[KEY_P(g)] = { hi: r.hi, sh: r.sh }; delete activePaper().recheck; } else delete A.profile.grades[KEY_P(g)];
+  return r;
+}
+function calRecord() {                                          // a calibration strip test has just finished
+  const c = U.calRun; if (!c) return; U.calRun = null;
+  const p = U.runPlan || U.plan; if (!p || p.kind !== 'strip' || p.steps[0].nomReach == null) return;
+  const e = calEntry(c.grade);
+  e[c.kind] = { tot: p.steps.map(x => x.nomReach), pick: null, L: e.L };
+  syncProfile(c.grade);
+  A.tab = 'cal'; save();
+  toast('Strip recorded. Process and dry it, then pick the strip here.', 8000); renderAll();
+}
+
+// Checks an exported profile and merges it into the target (the app's own state by default). Grades that are already there are
+// overwritten; everything else is kept. Returns { n, skipped, name } or { error }. Nothing is changed when there is an error.
+function mergeProfile(j, tgt) {
+  tgt = tgt || { profile: A.profile, cal: A.cal };
+  if (!j || j.app !== 'fstop-timer' || !j.profile || typeof j.profile.grades !== 'object' || !j.profile.grades) return { error: 'That is not an F-Stop Timer profile export.' };
+  const okNum = v => typeof v === 'number' && isFinite(v) && Math.abs(v) < 60;
+  const good = {}; let skipped = 0;
+  Object.keys(j.profile.grades).forEach(k => {
+    const g = j.profile.grades[k], p = Number(k);
+    if (g && GRADES.some(x => x.p === p) && okNum(g.hi) && okNum(g.sh) && g.sh > g.hi) good[KEY_P(p)] = { hi: g.hi, sh: g.sh }; else skipped++;
+  });
+  const n = Object.keys(good).length;
+  if (!n) return { error: 'The file holds no usable grades.' + (skipped ? ' ' + skipped + ' were invalid.' : '') };
+  const run = r => r && Array.isArray(r.tot) && r.tot.length === 6 && r.tot.every(v => typeof v === 'number' && v > 0 && v < 1e5) &&
+    (r.pick === null || (Number.isInteger(r.pick) && r.pick >= 1 && r.pick <= 6)) && typeof r.L === 'number' && r.L > 0;
+  const cal = {};
+  const src = j.calibration && typeof j.calibration === 'object' ? j.calibration : {};
+  Object.keys(src).forEach(k => {
+    const e = src[k], p = Number(k);
+    if (!e || !GRADES.some(x => x.p === p)) return;
+    const o = {}; if (typeof e.L === 'number' && e.L > 0) o.L = e.L;
+    ['hi', 'sh'].forEach(kind => { if (run(e[kind])) o[kind] = { tot: e[kind].tot.slice(), pick: e[kind].pick, L: e[kind].L }; });
+    if (Object.keys(o).length) cal[KEY_P(p)] = o;
+  });
+  Object.assign(tgt.profile.grades, good);
+  Object.keys(cal).forEach(k => { tgt.cal.data[k] = cal[k]; });
+  return { n, skipped, name: typeof j.profile.name === 'string' ? j.profile.name : '' };
+}
+// Reads an export file. A file from this version holds every paper; an older file holds one profile. A paper whose name matches one here
+// is merged into it (grades in the file replace the same grades, the others are kept); any other paper is added. Nothing changes when no paper in the file is usable.
+function importFile(j) {
+  if (!j || j.app !== 'fstop-timer') return { error: 'That is not an F-Stop Timer profile export.' };
+  const src = Array.isArray(j.papers) ? j.papers : [{ profile: j.profile, calibration: j.calibration }];
+  const got = []; let err = '';
+  src.forEach(fp => {
+    if (!fp || typeof fp !== 'object') return;
+    const tmp = { profile: { grades: {} }, cal: { data: {} } };
+    const r = mergeProfile({ app: 'fstop-timer', profile: fp.profile, calibration: fp.calibration }, tmp);
+    if (r.error) { err = err || r.error; return; }
+    const nm = [fp.name, fp.profile && fp.profile.name].find(x => typeof x === 'string' && x.trim());
+    got.push({ fp, tmp, r, name: String(nm || 'Imported paper').trim().slice(0, 80) });
+  });
+  if (!got.length) return { error: err || 'The file holds no usable papers.' };
+  const papers = [];
+  got.forEach(g => {
+    let p = A.papers.find(x => x.name.toLowerCase() === g.name.toLowerCase()), added = false;
+    if (!p) {
+      p = makePaper(g.name, g.fp.type, g.fp.preset); added = true;
+      const dv = g.fp.dev;
+      if (dv && typeof dv === 'object') Object.keys(DEVDEF).forEach(k => { const v = dv[k]; if (typeof v === 'number' && isFinite(v) && v >= DEVDEF[k].min && v <= DEVDEF[k].max) p.dev[k] = Math.round(v); });
+      if (dv && typeof dv.wash === 'boolean') p.dev.wash = dv.wash;
+    }
+    Object.assign(p.profile.grades, g.tmp.profile.grades);
+    Object.keys(g.tmp.cal.data).forEach(k => { p.cal.data[k] = g.tmp.cal.data[k]; });
+    papers.push({ name: p.name, n: g.r.n, skipped: g.r.skipped, added });
+  });
+  return { papers };
+}
+function importProfile() {
+  const inp = document.createElement('input');            // made on the fly, so a screen update cannot detach it while the file chooser is open
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onerror = () => toast('Could not read that file', 6000, true);
+    rd.onload = () => {
+      let j; try { j = JSON.parse(String(rd.result)); } catch (e) { toast('That file is not a profile export.', 6000, true); return; }
+      const r = importFile(j);
+      if (r.error) { toast(r.error, 7000, true); return; }
+      save(); changed();
+      const n = r.papers.reduce((s, p) => s + p.n, 0), sk = r.papers.reduce((s, p) => s + p.skipped, 0);
+      toast('Imported ' + n + ' grade' + (n === 1 ? '' : 's') + (sk ? ', skipped ' + sk + ' invalid' : '') + ' into ' + r.papers.map(p => p.name + (p.added ? ' (new paper)' : '')).join(', '), 8000);
+    };
+    rd.readAsText(f);
+  };
+  inp.click();
+}
+function exportProfile() {
+  const papers = A.papers.map(p => ({ name: p.name, type: p.type, preset: p.preset, profile: { name: p.name, grades: p.profile.grades }, calibration: p.cal.data, dev: p.dev }));
+  // the top-level profile and calibration are the active paper's, so an older version of the app can still read the file
+  const blob = new Blob([JSON.stringify({ app: 'fstop-timer', version: 2, papers, profile: A.profile, calibration: A.cal.data, exported: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'fstop-papers.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000); toast('All papers exported');
+}
+function printState() {
+  const p = A.print, d = gradeDoses(A.profile, p.grade), m = A.meter, net = v => (v == null ? null : netLux(v, m.dark));
+  const Lh = net(m.hi), Ls = net(m.lo), ok = !!(d && Lh > 0);
+  const tCalc = ok ? printTime(d, Lh, p.place) : null, t = tCalc ? tCalc * Math.pow(2, p.off / 12) : null;
+  return { d, Lh, Ls, ok, tCalc, t, fh: ok ? tonePos(d, Lh, t) : null, fs: ok && Ls > 0 ? tonePos(d, Ls, t) : null,
+    negRange: Lh > 0 && Ls > 0 ? Math.log2(Ls / Lh) : null };
+}
+const TONE_LO = -0.3, TONE_HI = 1.3;
+function toneScaleHTML(ps, mode) {
+  const n = 16, cap = A.set.greyMax / 100, pct = f => clamp((f - TONE_LO) / (TONE_HI - TONE_LO), 0, 1) * 100;
+  let cells = '';
+  for (let i = 0; i < n; i++) cells += '<i class="tcell" style="background:' + toneColor(toneLevel(TONE_LO + (i + 0.5) * (TONE_HI - TONE_LO) / n), mode, cap) + '"></i>';
+  const mk = (f, name) => (f == null ? '' : '<b class="tm' + (f < TONE_LO || f > TONE_HI ? ' edge' : '') + '" style="left:' + pct(f).toFixed(2) + '%">' + name + '</b>');
+  return '<div class="tscale" data-mode="' + mode + '"><div class="tmrow">' + mk(ps.fh, 'H') + mk(ps.fs, 'S') + '</div><div class="tbar">' + cells + '</div>' +
+    '<div class="tlabs"><span class="tlab" style="left:' + pct(0).toFixed(2) + '%">first tone</span><span class="tlab" style="left:' + pct(1).toFixed(2) + '%">full black</span></div></div>';
+}
+function runToneHTML() {                                       // red scale shown while exposing
+  const ps = printState(); if (!ps.d || !(ps.Lh > 0)) return '';
+  const t = (U.runPlan && U.runPlan.nom) || mainNom(), x = { fh: tonePos(ps.d, ps.Lh, t), fs: ps.Ls > 0 ? tonePos(ps.d, ps.Ls, t) : null };
+  return '<div class="lbl" style="margin-top:14px">Predicted print tones, grade ' + gradeLabel(A.print.grade) + '</div>' + toneScaleHTML(x, toneModeFor(modeState()));
+}
+function viewPrint() {
+  const ps = printState(), p = A.print, n = Object.keys(A.profile.grades).length, mode = toneModeFor(modeState());
+  const how = ps.d ? ps.d.how : n ? 'not calibrated' : '';
+  let right;
+  if (!n) right = '<div class="note">This paper has not been calibrated yet. Open the Calibrate tab to measure it.</div>';
+  else if (!ps.d) right = '<div class="note">Grade ' + gradeLabel(p.grade) + ' is outside the calibrated grades. Calibrate it, or pick a grade between two calibrated ones.</div>';
+  else if (!(ps.Lh > 0)) right = '<div class="note">Store a highlight reading on the Meter tab first.</div>';
+  else {
+    const hiAbove = Math.log2(ps.Lh * ps.t) - ps.d.hi, R_ = ps.d.sh - ps.d.hi;
+    let sd = '';
+    if (ps.Ls > 0) { const x = Math.log2(ps.Ls * ps.t) - ps.d.sh; sd = x > 0.05 ? 'Shadow: full black is reached ' + x.toFixed(2) + ' stops before the shadow, so shadow detail is lost at this grade.' : x < -0.05 ? 'Shadow: stays ' + (-x).toFixed(2) + ' stops short of full black.' : 'Shadow: just reaches full black.'; }
+    right = toneScaleHTML(ps, mode) + '<div class="tsum"><div>Highlight: ' + hiAbove.toFixed(2) + ' stops above first tone.</div><div>' + esc(sd) + '</div>' +
+      (A.set.comp ? '<div>Print compensation of ' + SETDEF.comp.fmt(A.set.comp) + ' is added when you expose.</div>' : '') + (ps.negRange != null ? '<div>Negative range ' + ps.negRange.toFixed(2) + ' stops. Paper range at grade ' + gradeLabel(p.grade) + ': ' + R_.toFixed(2) + ' stops.</div>' : '') + '</div>' +
+      '<div class="note">' + (mode === 'grey' ? 'Grey while you set up; red when the lamp could be on.' : 'Red: the lamp may be on, or the link is not up.') + ' Only first tone and full black are measured.</div>';
+  }
+  const vrow = (name, act, val, sub) => '<div class="vrow"><div class="name">' + name + '</div>' + B(act, '\u2212', 'sq s', 'data-a="-1"') + '<div class="val">' + val + '</div>' + B(act, '+', 'sq s', 'data-a="1"') + '<div class="how">' + (sub || '') + '</div></div>';
+  return '<div class="prt"><div>' +
+    '<button class="btn ppick" data-act="pppick" ' + (running(R.state) ? 'disabled' : '') + '><small>Paper. ' + n + ' grade' + (n === 1 ? '' : 's') + ' calibrated. Tap to switch</small><b>' + esc(A.profile.name) + '</b></button>' +
+    vrow('Current paper grade', 'pgrade', gradeLabel(p.grade), how) +
+    vrow('Highlight placement', 'pplace', fmtStops(p.place), 'above first tone') +
+    '<div class="readout"><div><div class="lbl">Time</div><div class="num" id="ptime">' + (ps.t ? ps.t.toFixed(1) : '\u2014') + '</div></div><div><div class="lbl">Change from calculated</div><div class="num" id="poffv">' + fmtStops(p.off) + '</div></div></div>' +
+    '<div class="row" style="margin:0">' + B('poff', '\u2212 time', 'chip', 'data-a="-1" ' + (ps.t ? '' : 'disabled')) + B('poff', '+ time', 'chip', 'data-a="1" ' + (ps.t ? '' : 'disabled')) + B('poff0', 'Reset', 'chip', p.off ? '' : 'disabled') + '</div>' +
+    '<div class="row" style="margin:10px 0 0;gap:10px;align-items:stretch"><button class="btn chip" style="flex:1;height:76px" data-act="puse" ' + (ps.t ? '' : 'disabled') + '>Use as base time</button>' +
+    '<button class="btn go sm" style="flex:1.5" data-act="start" ' + (ps.t ? disAttr() : 'disabled') + '>Start' + (ps.t ? ' ' + (ps.t * compF()).toFixed(1) + ' s' : '') + '</button></div>' +
+    '<div class="note">The current paper grade is the filter in your enlarger. Start runs the time above, and so does the foot pedal.</div>' +
+    '</div><div>' + (recheckText() ? '<div class="note">' + esc(recheckText()) + '</div>' : '') + right +
+    (!n || !ps.d ? '<div class="row" style="margin:18px 0 0">' + B('tab', 'Open the Calibrate tab', 'chip', 'data-a="cal"') + '</div>' : '') + '</div></div>';
+}
+function viewCal() {
+  const g = A.cal.grade, e = A.cal.data[KEY_P(g)] || {}, res = calcGrade(e), d = U.linkOk && R.probe && !U.zero ? '' : 'disabled';
+  const chips = GRADES.map(x => B('calgrade', x.l + (A.profile.grades[KEY_P(x.p)] ? ' \u2713' : ''), 'chip' + (x.p === g ? ' on' : ''), 'data-a="' + x.p + '"')).join('');
+  const step = (kind, title, help) => {
+    const r = e[kind];
+    let ctl;
+    if (!r) ctl = B('calstrip', 'Set up strip test', 'chip', 'data-a="' + kind + '" ' + (e.L > 0 ? '' : 'disabled'));
+    else ctl = '<div class="picks">' + [6, 5, 4, 3, 2, 1].map(sn => B('calpick', sn + '<small>' + r.tot[6 - sn].toFixed(1) + ' s</small>', 'chip' + (r.pick === sn ? ' on' : ''), 'data-a="' + kind + '" data-b="' + sn + '"')).join('') + B('calredo', 'Redo', 'chip', 'data-a="' + kind + '"') + '</div>';
+    return '<div class="calstep"><div class="t"><b>' + title + '</b> ' + help + (r && !r.pick ? ' <b>Pick a strip.</b>' : '') + '</div>' + ctl + '</div>';
+  };
+  const resTxt = res && !res.error ? '<b>Grade ' + gradeLabel(g) + ' saved.</b> Paper range ' + (res.sh - res.hi).toFixed(2) + ' stops (first tone 2^' + res.hi.toFixed(2) + ', full black 2^' + res.sh.toFixed(2) + ').'
+    : res && res.error ? '<b>' + esc(res.error) + '</b>' : 'Complete steps 1 to 3 to save this grade. Calibrate at least two grades; grades between are interpolated. This does not change your current paper grade.';
+  return '<div class="cal">' + paperRowHTML() + '<div class="calhead"><div class="lbl" id="calstat">Calibrating grade ' + gradeLabel(g) + '.</div><div class="picks">' +
+    B('calclear', 'Clear grade', 'chip', e.L || e.hi || e.sh || A.profile.grades[KEY_P(g)] ? '' : 'disabled') + B('pexport', 'Export papers', 'chip', A.papers.some(p => gradeCount(p)) ? '' : 'disabled') + B('pimport', 'Import papers', 'chip', '') + '</div></div>' +
+    '<div class="calchips">' + chips + '</div><div class="note calres">' + resTxt + (recheckText() ? ' <b>' + esc(recheckText()) + '</b>' : '') + '</div>' +
+    '<div class="calstep"><div class="t"><b>1. Light level.</b> Filter in, no negative, probe on the baseboard, same height and aperture as the strips. ' + (e.L > 0 ? 'Stored: ' + (e.L / 100).toFixed(2) + ' lx.' : 'Not stored yet.') + '</div>' +
+    '<div class="picks">' + B('mstart', R.metering ? 'Stop metering' : 'Start metering', 'chip', d) + B('calL', 'Store light', 'chip', 'id="bcalL" disabled') + '</div></div>' +
+    step('hi', '2. Highlight strips.', 'Blank paper, short times. When dry, pick the lightest strip that is clearly darker than unexposed paper. If every strip shows tone, redo with a shorter base time.') +
+    step('sh', '3. Shadow strips.', 'Blank paper, longer times. When dry, pick the first strip that is as black as the strips beyond it. If none is black, redo with a longer base time.') +
+    '</div>';
+}
+function updateCalLive() {
+  if (A.tab !== 'cal') return;
+  const mm = meterModel(), b = document.getElementById('bcalL'); if (b) b.disabled = !canStore(mm);
+  const el = document.getElementById('calstat');
+  if (el && (R.metering || U.zero)) { const t = meterStatusText(mm); if (el.textContent !== t) el.textContent = t; }
+}
+
+/* ================= develop: temperature and the process timer ================= */
+// Ilford's tray processing figures for MULTIGRADE RC Deluxe at 20 C: MULTIGRADE developer 1+9 for 1 min, 1+14 for 1.5 min,
+// PQ Universal 1+9 or Bromophen 1+3 for 2 min; ILFOSTOP 10 s; Rapid Fixer 1+4 for 30 s (1+9 for 1 min); wash 2 min.
+// Ilford gives stop bath and fixer a range of 18 to 24 C. It gives NO change of tray development time for other temperatures
+// (its table of times at 25 to 40 C is for machine processors), so any time change here is the user's own value, off by default.
+const DEV_TARGET = 20, DEV_RANGE = [18, 24];
+const DEVDEF = { devSec: { min: 10, max: 600, step: 5, fmt: v => fmtMS(v) }, stopSec: { min: 5, max: 120, step: 5, fmt: v => fmtMS(v) },
+  fixSec: { min: 5, max: 600, step: 5, fmt: v => fmtMS(v) }, washSec: { min: 30, max: 5400, step: (v, dir) => ((dir > 0 ? v >= 600 : v > 600) ? 300 : 30), fmt: v => fmtMS(v) } };
+const BEEP_TICK = 0, BEEP_STEP = 1, BEEP_DONE = 2;
+let Tp = { c: null, ok: false, err: false, rxAt: -1e9 };
+const fmtMS = sec => { const t = Math.round(sec); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+const tempFresh = () => perf() - Tp.rxAt < 4000;
+const currentTemp = () => (U.linkOk && R.tprobe && tempFresh() && Tp.ok ? Tp.c : null);
+// Develop time at temperature t, using the user's own percentage change per degree (0 = no change, which is all Ilford gives).
+function devTimeFor(base, t, k) {
+  if (!(k > 0) || t == null) return base;
+  return Math.max(5, Math.round(base * clamp(1 + (k / 100) * (DEV_TARGET - t), 0.5, 2)));
+}
+function devSteps(t) {
+  const d = A.dev, st = [{ name: 'Develop', sec: devTimeFor(d.devSec, t, A.set.devK), drain: true }, { name: 'Stop bath', sec: d.stopSec }, { name: 'Fix', sec: d.fixSec }];
+  if (d.wash) st.push({ name: 'Wash', sec: d.washSec });
+  return st;
+}
+function devTempStatus() {
+  if (!U.linkOk) return 'No link to the relay';
+  if (!R.tprobe) return 'No temperature probe fitted';
+  if (Tp.err && tempFresh()) return 'Probe read error. Check the probe and its cable.';
+  const t = currentTemp(); if (t == null) return 'Reading the probe...';
+  const diff = t - DEV_TARGET, a = Math.abs(diff);
+  let s = a <= 1 ? 'On target (20 \u00b0C).' : a.toFixed(1) + ' \u00b0C ' + (diff > 0 ? 'warmer' : 'colder') + ' than 20 \u00b0C.';
+  const pre = paperPreset(activePaper().preset);
+  if (pre && pre.tempNote && (t < DEV_RANGE[0] || t > DEV_RANGE[1])) s += ' Outside 18 to 24 \u00b0C, ' + pre.tempNote + '.';
+  if (a > 1) s += A.set.devK > 0 ? ' Develop time adjusted by your own ' + A.set.devK + '% per \u00b0C.' : (pre && pre.maker === 'Ilford' ? ' Ilford gives no tray development time change, so the time is not adjusted.' : ' No development time change is stored for this paper, so the time is not adjusted.');
+  return s;
+}
+function onTemp(m) { Tp = { c: m.centi / 100, ok: m.ok, err: m.err, rxAt: perf() }; updateDevLive(); }
+function syncTemp() {                                              // read the probe only while the Develop tab is open
+  const want = A.tab === 'dev' && U.linkOk && R.tprobe;
+  if (!U.linkOk) U.tempOn = false;
+  if (want && !U.tempOn) { toRelay('TEMP', { on: true }); U.tempOn = true; }
+  else if (!want && U.tempOn) { if (U.linkOk) toRelay('TEMP', { on: false }); U.tempOn = false; }
+}
+const devBeep = kind => { if (U.linkOk) toRelay('BEEP', { kind }); };
+function devStart() {
+  if (U.dev && U.dev.state !== 'done') return;
+  const t = currentTemp();
+  U.dev = { steps: devSteps(t), idx: 0, t0: perf(), pausedAt: null, state: 'run', temp: t, last5: -1, drained: false, msg: '' };
+  devBeep(BEEP_STEP); renderAll();
+}
+function devPause() {
+  const D = U.dev; if (!D) return;
+  if (D.state === 'run') { D.state = 'pause'; D.pausedAt = perf(); }
+  else if (D.state === 'pause') { D.t0 += perf() - D.pausedAt; D.state = 'run'; }
+  renderAll();
+}
+function devAdvance(carry) {                                       // move to the next bath, or finish
+  const D = U.dev; D.idx++; D.last5 = -1; D.drained = false; D.msg = '';
+  if (D.idx >= D.steps.length) { D.state = 'done'; D.msg = 'Finished.'; devBeep(BEEP_DONE); }
+  else { D.t0 = carry ? D.t0 + D.steps[D.idx - 1].sec * 1000 : perf(); devBeep(BEEP_STEP); }
+}
+function devSkip() { const D = U.dev; if (!D || D.state === 'done') return; if (D.state === 'pause') { D.t0 = perf(); D.state = 'run'; devAdvance(false); } else devAdvance(false); renderAll(); }
+const devRemainMs = D => { const st = D.steps[D.idx]; return st.sec * 1000 - ((D.state === 'pause' ? D.pausedAt : perf()) - D.t0); };
+function devTick() {                                               // returns true when the step or state changed
+  const D = U.dev; if (!D || D.state !== 'run') return false;
+  const st = D.steps[D.idx], rem = devRemainMs(D), remS = Math.ceil(rem / 1000);
+  if (st.drain && !D.drained && A.dev.drain > 0 && st.sec > A.dev.drain + 5 && rem <= A.dev.drain * 1000) { D.drained = true; D.msg = 'Lift the print now so it drains.'; devBeep(BEEP_STEP); }
+  if (remS >= 1 && remS <= 5 && remS !== D.last5) { D.last5 = remS; devBeep(BEEP_TICK); }
+  if (rem <= 0) { devAdvance(true); return true; }
+  return false;
+}
+function devFrame() {
+  const ch = devTick();
+  if (A.tab === 'dev') { if (ch) renderMainView(); else updateDevLive(); }
+  else if (U.dev && U.dev.state === 'run') updateToast();
+}
+function devChipRows(chips) {                               // the maker's alternatives for the active paper, where it has more than one
+  const pre = paperPreset(activePaper().preset); if (!pre) return '';
+  const row = (list, key, act, cap) => (list.length > 1 ? '<div class="lbl sm">' + esc(cap) + '</div><div class="row" style="margin:0;gap:8px">' + chips(list, key, act) + '</div>' : '');
+  return row(pre.developers, 'devSec', 'dvpd', pre.devCap) + row(pre.stops, 'stopSec', 'dvps', pre.stopCap) + row(pre.fixers, 'fixSec', 'dvpf', pre.fixCap) + row(pre.washes, 'washSec', 'dvpw', pre.washCap);
+}
+function devMakerHTML(dis) {
+  const pre = paperPreset(activePaper().preset);
+  if (!pre) return '<div class="devmk"><div class="note">No maker\u2019s times are stored for this paper. The times above are your own.</div></div>';
+  return '<div class="devmk">' + B('dvmaker', 'Maker\u2019s times', 'chip', dis) + '<div class="note">' + esc(pre.src) + '. 20 \u00b0C.</div></div>';
+}
+function viewDev() {
+  const d = A.dev, D = U.dev, active = !!(D && D.state !== 'done'), dis = active ? 'disabled' : '', steps = D ? D.steps : devSteps(currentTemp());
+  const drow = (label, key) => '<div class="drow"><span>' + label + '</span><div class="stp">' + B('dvstep', '\u2212', 'sq s', 'data-a="' + key + '" data-b="-1" ' + dis) +
+    '<span class="sv">' + DEVDEF[key].fmt(d[key]) + '</span>' + B('dvstep', '+', 'sq s', 'data-a="' + key + '" data-b="1" ' + dis) + '</div></div>';
+  const chips = (list, key, act) => list.map(x => B(act, esc(x[0]) + ' ' + fmtMS(x[1]), 'chip' + (d[key] === x[1] ? ' on' : ''), 'data-a="' + x[1] + '" ' + dis)).join('');
+  const t = currentTemp();
+  const list = steps.map((s, i) => '<div class="dvl' + (D && i === D.idx && D.state !== 'done' ? ' cur' : '') + (D && (i < D.idx || D.state === 'done') ? ' done' : '') + '"><span>' + esc(s.name) + '</span><span id="dvt' + i + '">' + fmtMS(s.sec) + '</span></div>').join('');
+  let ctl;
+  if (!D || D.state === 'done') ctl = '<button class="btn go sm" data-act="dvstart">' + (D ? 'Start again' : 'Start') + '</button>' + (D ? B('dvreset', 'Clear', 'chip', '') : '');
+  else ctl = B('dvpause', D.state === 'pause' ? 'Resume' : 'Pause', 'chip', '') + B('dvskip', 'Next bath', 'chip', '') + B('dvreset', 'Reset', 'chip', '');
+  return '<div class="dev"><div>' +
+    '<div class="lbl">Developer temperature</div><div class="dtemp"><span class="num" id="dvtemp">' + (t == null ? '\u2014' : t.toFixed(1)) + '</span><span class="dtu">\u00b0C</span></div>' +
+    '<div class="note" id="dvtstat">' + esc(devTempStatus()) + '</div>' +
+    drow('Develop', 'devSec') + drow('Stop bath', 'stopSec') + drow('Fix', 'fixSec') +
+    '<div class="drow"><span>Wash</span><div class="stp">' + B('dvwash', d.wash ? 'On' : 'Off', 'tog' + (d.wash ? ' on' : ''), dis) + (d.wash ? B('dvstep', '\u2212', 'sq s', 'data-a="washSec" data-b="-1" ' + dis) + '<span class="sv">' + fmtMS(d.washSec) + '</span>' + B('dvstep', '+', 'sq s', 'data-a="washSec" data-b="1" ' + dis) : '') + '</div></div>' +
+    '<div class="drow"><span>Time change per \u00b0C<small>Your own value.' + (((paperPreset(activePaper().preset) || {}).maker) === 'Ilford' ? ' Ilford gives none.' : '') + '</small></span>' + stepper('devK') + '</div>' +
+    devMakerHTML(dis) +
+    '</div><div>' +
+    '<div class="lbl" id="dvname">' + (active ? esc(D.steps[D.idx].name) : D ? 'Finished' : 'Ready') + '</div><div class="num dcd" id="dvcd">' + fmtMS(active ? Math.max(0, Math.ceil(devRemainMs(D) / 1000)) : steps[0].sec) + '</div>' +
+    '<div class="dvbar"><i id="dvfill"></i></div><div class="note" id="dvmsg">' + esc(D ? D.msg : '') + '</div>' +
+    '<div class="dvlist">' + list + '</div><div class="row" style="margin:8px 0 0;gap:10px">' + ctl + '</div>' +
+    devChipRows(chips) + '</div></div>';
+}
+function updateDevLive() {
+  if (A.tab !== 'dev') return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== v) el.textContent = v; };
+  const t = currentTemp();
+  set('dvtemp', t == null ? '\u2014' : t.toFixed(1)); set('dvtstat', devTempStatus());
+  const D = U.dev;
+  if (!D || D.state === 'done') { const pv = devSteps(t); pv.forEach((x, i) => set('dvt' + i, fmtMS(x.sec))); if (!D) set('dvcd', fmtMS(pv[0].sec)); }
+  if (D && D.state !== 'done') {
+    const st = D.steps[D.idx], rem = Math.max(0, devRemainMs(D));
+    set('dvcd', fmtMS(Math.ceil(rem / 1000))); set('dvname', st.name); set('dvmsg', D.msg);
+    const f = document.getElementById('dvfill'); if (f) f.style.width = (100 * (1 - rem / (st.sec * 1000))).toFixed(1) + '%';
+  }
+}
+function toast(text, ms, hot) { U.toast = { text, until: perf() + (ms || 3200), hot: !!hot }; updateToast(); }
+function updateToast() {
+  const el = $('#toast'); if (!el) return;
+  const t = U.toast && perf() < U.toast.until ? U.toast : null;
+  const dv = U.dev && U.dev.state === 'run' && A.tab !== 'dev' ? U.dev.steps[U.dev.idx] : null;
+  el.textContent = t ? t.text : dv ? 'Develop timer: ' + dv.name + ' ' + fmtMS(Math.max(0, Math.ceil((dv.sec * 1000 - (perf() - U.dev.t0)) / 1000))) : 'Step ' + IV[A.iv].l + ', base ' + (A.baseT / 10).toFixed(1) + ' s' + (A.set.comp ? ', comp ' + SETDEF.comp.fmt(A.set.comp) : '');
+  el.classList.toggle('hot', !!(t && t.hot));
+}
+function remEst() {
+  if (!running(R.state)) return 0;
+  let r = R.rem;
+  if (U.linkOk && (R.state === 'EXPOSING' || R.state === 'GAP' || R.state === 'SETTLE')) r -= (perf() - R.rxAt) * R.speed;
+  return Math.max(0, r);
+}
+
+
+/* ================= main screen rendering ================= */
+const screen = $('#screen');
+const B = (act, label, cls, extra) => '<button class="btn ' + (cls || '') + '" data-act="' + act + '" ' + (extra || '') + '>' + label + '</button>';
+const chips = (arr, sel, act, fmt) => arr.map((x, i) => B(act, fmt(x, i), 'chip' + (sel(x, i) ? ' on' : ''), 'data-a="' + i + '"')).join('');
+const ivChips = () => IV.map((x, i) => B('iv', x.l, 'chip' + (i === A.iv ? ' on' : ''), 'data-a="' + i + '"')).join('');
+const disAttr = () => (U.linkOk ? '' : 'disabled');
+
+function renderSeg() {
+  const n = running(R.state) ? Math.max(R.steps, 1) : A.tab === 'strip' ? 6 : A.tab === 'recipe' ? 1 + A.recipe.filter(e => e.type === 'burn').length : 1;
+  if (n !== U.segN || !$('#segbar').children.length) {
+    U.segN = n;
+    $('#segbar').innerHTML = Array.from({ length: n }, () => '<div class="seg"><i></i></div>').join('');
+  }
+}
+function renderStatus() {
+  const s = U.linkOk ? R.state : 'NOLINK';
+  const label = s === 'NOLINK' ? 'No link' : NAMES[s];
+  const cls = (s === 'EXPOSING' ? ' exp' : '') + (s === 'FAULT' || s === 'NOLINK' ? ' warn' : '');
+  const ind = (t, on) => '<span class="ind' + (on ? ' on' : '') + '"><i></i>' + t + '</span>';
+  $('#status').innerHTML = '<span class="schip' + cls + '">' + label + '</span>' +
+    '<button class="gchip" data-act="tab" data-a="print" ' + (running(R.state) ? 'disabled' : '') + ' aria-label="Current paper grade ' + gradeLabel(A.print.grade) + ', tap to change"><small>Current paper grade</small><b>' + gradeLabel(A.print.grade) + '</b></button><button class="pchip" data-act="pppick" ' + (running(R.state) ? 'disabled' : '') + ' aria-label="Paper ' + esc(A.profile.name) + ', tap to change">' + esc(paperShort(A.profile.name)) + '</button><span id="toast"></span>' +
+    '<button class="relbtn' + (U.linkOk ? ' on' : '') + '" data-act="panel" aria-label="Relay connection"><i></i>Relay</button>' + ind('Lamp', U.linkOk && R.lamp) + ind('Safelight', U.linkOk && R.safe);
+  updateToast();
+}
+function renderNav() {
+  const nav = $('#nav');
+  nav.className = running(R.state) ? 'locked' : '';
+  nav.innerHTML = TABS.map(t => '<button class="' + (A.tab === t[0] ? 'on' : '') + '" data-act="tab" data-a="' + t[0] + '">' + t[1] + '</button>').join('');
+}
+function applyBright() {
+  // A web page cannot change the tablet's backlight; this only darkens the page's own pixels.
+  const dim = R.state === 'EXPOSING', f = (dim ? A.set.dim : A.set.bright) / 100;
+  $('#app').style.filter = 'brightness(' + f + ')';
+}
+
+function viewTime() {
+  const b = A.baseT / 10, nom = mainNom(), act = mainAct(), d = disAttr();
+  const corr = A.set.recipOn && Math.abs(act - nom) > 0.05;
+  const foc = R.state === 'FOCUS';
+  return '<div class="time"><div>' +
+    '<div class="lbl">Base time</div><div class="baserow">' + B('base', '\u2212', 'sq', 'data-a="-1" aria-label="Decrease base time"') +
+    '<button class="basev" data-act="keypad" aria-label="Enter base time"><span class="num">' + b.toFixed(1) + '</span><small>s</small></button>' +
+    B('base', '+', 'sq', 'data-a="1" aria-label="Increase base time"') + '</div>' +
+    '<div class="lbl">Start time presets</div><div class="row">' + PRESETS.map(p => B('preset', p, 'chip' + (A.baseT === p * 10 ? ' on' : ''), 'data-a="' + p + '"')).join('') + '</div>' +
+    '<div class="lbl">Step size, in stops per click</div><div class="row">' + ivChips() + '</div>' +
+    '<div class="lbl">Change exposure</div><div class="row">' +
+    B('off', '\u2212<small>' + IV[A.iv].l + ' stop</small>', 'big', 'data-a="-1" aria-label="Less exposure"') +
+    B('off', '+<small>' + IV[A.iv].l + ' stop</small>', 'big', 'data-a="1" aria-label="More exposure"') + '</div>' +
+    '</div><div class="tr">' +
+    '<div class="readout"><div><div class="lbl">Stops</div><div class="num">' + fmtStops(A.off) + '</div></div><div><div class="lbl">Time</div><div class="num">' + act.toFixed(1) + '<small>s</small></div></div></div>' +
+    (corr ? '<div class="note">Reciprocity added: ' + nom.toFixed(1) + ' s before compensation</div>' : '') +
+    (A.set.comp ? '<div class="note">Includes ' + SETDEF.comp.fmt(A.set.comp) + ' print compensation</div>' : '') +
+    '<button class="btn go" data-act="start" ' + d + '>Start</button>' +
+    '<div class="row" style="margin:0">' + B('focus', foc ? 'Focus light off' : 'Focus light on', 'tog' + (foc ? ' on' : ''), d) + B('safe', 'Safelight', 'tog' + (R.safeUser ? ' on' : ''), d) + '</div>' +
+    '<div class="bright"><span class="lbl" style="margin:0">Brightness</span><input type="range" min="10" max="100" value="' + A.set.bright + '" data-in="bright" aria-label="Screen brightness" ' + (foc ? '' : 'disabled') + '><span class="muted" id="focusrem"></span></div>' +
+    '<div class="row" style="margin:0">' + B('off0', 'Reset stops', 'chip') + B('setbase', 'Use as base', 'chip') + '</div>' +
+    '</div></div>';
+}
+
+function stripData() {
+  const b = A.baseT / 10, n = ivN(), tots = [];
+  for (let k = 0; k < 6; k++) tots.push(actTime(b, k * n));
+  return { b, n, tots };
+}
+function viewStrip() {
+  const { n, tots, b } = stripData(), d = disAttr();
+  const top = tots[5];
+  const strips = [1, 2, 3, 4, 5, 6].map(s => {
+    const k = 6 - s, a = 0.06 + 0.34 * (tots[k] - tots[0]) / Math.max(top - tots[0], 0.001);
+    return '<button class="btn strip' + (U.selStrip === s ? ' sel' : '') + '" style="background:rgba(255,0,0,' + a.toFixed(3) + ')" data-act="strip" data-a="' + s + '" aria-label="Strip ' + s + '">' +
+      '<span class="sn">' + s + '</span><span class="num sv">' + fmtStops(k * n) + '</span><span class="st">' + tots[k].toFixed(1) + ' s</span></button>';
+  }).join('');
+  let rows = '<div class="h">Step</div><div class="h">Cover from right</div><div class="h">Add time</div><div class="h">Reaches</div>';
+  for (let k = 0; k < 6; k++) rows += '<div>' + (k + 1) + '</div><div>' + (k ? k + '/6' : 'nothing') + '</div><div>' + ((tots[k] - (k ? tots[k - 1] : 0)).toFixed(1)) + ' s</div><div>' + tots[k].toFixed(1) + ' s</div>';
+  return '<div class="stripwrap"><div>' +
+    '<div class="lbl">Test strips, left to right. Strip 1 gets the most light.</div><div class="strips">' + strips + '</div>' +
+    '<div class="tbl">' + rows + '</div></div>' +
+    '<div class="rcol">' +
+    '<div class="mini">' + B('base', '\u2212', 'sq s', 'data-a="-1" aria-label="Decrease base time"') + '<button class="basev" data-act="keypad" aria-label="Enter base time"><span class="num">' + b.toFixed(1) + '</span><small>s</small></button>' + B('base', '+', 'sq s', 'data-a="1" aria-label="Increase base time"') + '</div>' +
+    '<div class="lbl" style="margin:0">Step size</div><div class="row" style="margin:0">' + ivChips() + '</div>' +
+    '<div class="row" style="margin:0;align-items:center;justify-content:space-between"><span class="lbl" style="margin:0">Step gap</span>' + stepper('gap') + '</div>' +
+    '<button class="btn go sm" data-act="start' + '" ' + d + '>Start strip test</button>' +
+    (U.calRun ? '<div class="note">Calibration, grade ' + gradeLabel(U.calRun.grade) + (U.calRun.kind === 'hi' ? ' highlight' : ' shadow') + ' strips: blank paper, no negative, same height and aperture as the light reading.</div>' : '') +
+    B('usestrip', 'Use selected strip', 'chip', U.selStrip ? '' : 'disabled') +
+    '</div></div>';
+}
+function stepper(key) {
+  return '<div class="stp">' + B('set', '\u2212', 'sq s', 'data-key="' + key + '" data-dir="-1" aria-label="Decrease"') + '<span class="sv">' + SETDEF[key].fmt(A.set[key]) + '</span>' + B('set', '+', 'sq s', 'data-key="' + key + '" data-dir="1" aria-label="Increase"') + '</div>';
+}
+function viewRecipe() {
+  const m = mainNom(), main = mainAct(), d = disAttr();
+  let lamp = main;
+  const rows = A.recipe.map(e => {
+    const isB = e.type === 'burn';
+    const t = isB ? Rcp(m * Math.pow(2, e.n / 12)) - main : main - Rcp(m * Math.pow(2, -e.n / 12));
+    if (isB) lamp += t;
+    return '<div class="entry"><span class="badge ' + e.type + '">' + (isB ? 'Burn' : 'Dodge') + '</span><span class="num es">' + fmtStops(isB ? e.n : -e.n) + '</span><span class="et">' + (isB ? 'add ' : 'hold back ') + t.toFixed(1) + ' s</span>' +
+      B('rn', '\u2212', 'sq s', 'data-a="' + e.id + '" data-b="-1" aria-label="Less"') + B('rn', '+', 'sq s', 'data-a="' + e.id + '" data-b="1" aria-label="More"') + B('rdel', '\u2715', 'sq s', 'data-a="' + e.id + '" aria-label="Remove"') + '</div>';
+  }).join('');
+  const saved = A.saved.map(s => '<span style="display:flex;gap:6px">' + B('rload', esc(s.name), 'chip', 'data-a="' + s.id + '"') + B('rdelsaved', '\u2715', 'chip x', 'data-a="' + s.id + '" aria-label="Delete ' + esc(s.name) + '"') + '</span>').join('');
+  return '<div class="recwrap"><div>' +
+    '<div class="lbl">Main exposure ' + main.toFixed(1) + ' s (base ' + (A.baseT / 10).toFixed(1) + ' s, ' + fmtStops(A.off) + ' stops). Burns and dodges are relative to it.</div>' +
+    '<div class="list">' + (rows || '<div class="empty">No burns or dodges yet. Add one below. Each is timed relative to the main exposure.</div>') + '</div>' +
+    '<div class="row" style="margin:0">' + B('addburn', '+ Burn', 'chip') + B('adddodge', '+ Dodge', 'chip') + '</div></div>' +
+    '<div class="rcol"><div class="readout sm"><div><div class="lbl">Lamp time</div><div class="num">' + lamp.toFixed(1) + '<small>s</small></div></div><div><div class="lbl">Steps</div><div class="num">' + (1 + A.recipe.filter(e => e.type === 'burn').length) + '</div></div></div>' +
+    '<button class="btn go" data-act="start" ' + d + '>Start recipe</button>' +
+    '<div class="lbl" style="margin:0">Step size</div><div class="row" style="margin:0">' + ivChips() + '</div>' +
+    B('rsave', 'Save this recipe', 'chip') +
+    (saved ? '<div class="saved">' + saved + '</div>' : '') + '</div></div>';
+}
+function viewLog() {
+  const kn = { single: 'Exposure', strip: 'Strip test', recipe: 'Recipe' };
+  const rows = A.log.map(e => '<div class="lrow"><span>' + new Date(e.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</span><span>' + kn[e.kind] + '</span><span>' + esc(e.meta) + '. Lamp time ' + (e.total / 1000).toFixed(1) + ' s' + (e.paper ? '<small>' + esc(e.paper) + '</small>' : '') + '</span>' +
+    '<input data-in="lognote" data-id="' + e.id + '" value="' + esc(e.note) + '" placeholder="Add a note" aria-label="Note"></div>').join('');
+  return '<div class="logv"><div class="lhead"><span>Time</span><span>Type</span><span>What was exposed</span><span>Note</span></div>' +
+    '<div class="loglist">' + (rows || '<div class="empty">Nothing logged yet. Each completed exposure is saved here automatically.</div>') + '</div>' +
+    '<div class="row" style="margin:8px 0 0">' + B('logclear', 'Clear log', 'chip', 'style="flex:none;width:250px"' + (A.log.length ? '' : ' disabled')) + '</div></div>';
+}
+const SIZES = [['4x5', '4 \u00d7 5'], ['5x7', '5 \u00d7 7'], ['8x10', '8 \u00d7 10'], ['11x14', '11 \u00d7 14'], ['12x16', '12 \u00d7 16'], ['16x20', '16 \u00d7 20'], ['20x24', '20 \u00d7 24']];
+function scaleHTML() {
+  const s = A.scale;
+  if (!(s.aw > 0 && s.ah > 0 && s.bw > 0 && s.bh > 0)) return '<div class="empty" style="padding:0">Enter both print sizes to see the change in stops.</div>';
+  const stops = Math.log2((s.bw * s.bh) / (s.aw * s.ah)), tw = Math.round(stops * 12), nb = (A.baseT / 10) * Math.pow(2, stops);
+  return '<div class="lbl">Change in exposure</div><div class="num">' + (stops >= 0 ? '+' : '\u2212') + Math.abs(stops).toFixed(2) + '<small>stops</small></div>' +
+    '<div class="lbl" style="margin-top:8px">Nearest twelfth of a stop: ' + fmtStops(tw) + '. New base time ' + nb.toFixed(1) + ' s.</div>' +
+    '<div class="row" style="margin:10px 0 0">' + B('applyscale', 'Apply to base time', 'chip', 'style="height:70px"') + '</div>';
+}
+function viewScale() {
+  const s = A.scale;
+  const side = (k, name) => {
+    const cur = s[k + 'w'] + 'x' + s[k + 'h'];
+    return '<div class="szrow"><span class="cap">' + name + '</span><input type="number" min="1" step="any" value="' + s[k + 'w'] + '" data-in="scale" data-f="' + k + 'w" aria-label="' + name + ' width"><span>\u00d7</span><input type="number" min="1" step="any" value="' + s[k + 'h'] + '" data-in="scale" data-f="' + k + 'h" aria-label="' + name + ' height">' +
+      '<select data-in="scalePreset" data-side="' + k + '" aria-label="' + name + ' preset"><option value="">Common sizes (inches)</option>' + SIZES.map(z => '<option value="' + z[0] + '"' + (z[0] === cur ? ' selected' : '') + '>' + z[1] + '</option>').join('') + '</select></div>';
+  };
+  return '<div class="scv"><div><div class="lbl">Enter both sizes in the same unit. Exposure scales with print area.</div>' + side('a', 'Current print') + side('b', 'New print') + '</div>' +
+    '<div class="scres" id="scRes">' + scaleHTML() + '</div></div>';
+}
+function viewSet() {
+  const row = (label, hint, ctl) => '<div class="srow"><span>' + label + (hint ? '<small>' + hint + '</small>' : '') + '</span>' + ctl + '</div>';
+  const tog = (key, label, hint) => row(label, hint, B('toggle', A.set[key] ? 'On' : 'Off', 'tog' + (A.set[key] ? ' on' : ''), 'data-key="' + key + '"'));
+  return '<div class="setv"><div>' +
+    row('Strip test gap', 'Enlarger off while you move the card', stepper('gap')) +
+    row('Lamp latency offset', 'Added to every lamp switch-on', stepper('lat')) +
+    row('Enlarger shake delay', 'Lamp stays off after Start', stepper('shakeT')) +
+    row('Print time compensation', 'Dry-down or toning', stepper('comp')) +
+    row('Focus light timeout', 'Enforced by the relay unit', stepper('focusMin')) +
+    row('Beep volume', 'Every second and at each step', stepper('vol')) +
+    tog('mute', 'Mute beeps', '') +
+    '</div><div>' +
+    row('Screen dim while exposing', '', stepper('dim')) +
+    tog('safeAuto', 'Safelight off while exposing', '') +
+    tog('greyOn', 'True grey tone scale', 'Grey only while setting up; red whenever the lamp could be on') +
+    row('Grey brightness limit', 'Keeps the grey dim. Fog test it', stepper('greyMax')) +
+    tog('recipOn', 'Reciprocity compensation', 'Placeholder power law for long exposures') +
+    row('Reciprocity starts above', '', stepper('recipThr')) +
+    row('Reciprocity exponent', 'Time multiplier grows with this power', stepper('recipK')) +
+    '</div></div>' + aboutHTML();
+}
+
+function genericPlan() {
+  return { kind: R.kind || 'single', steps: Array.from({ length: Math.max(R.steps, 1) }, (_, j) => ({ ms: 0, label: 'Step ' + (j + 1), stops: 0 })) };
+}
+function viewRun() {
+  const plan = U.runPlan || genericPlan();
+  const st = R.state === 'PAUSED' ? (R.pf || 'EXPOSING') : R.state;
+  const n = plan.steps.length;
+  const i = clamp(st === 'GAP' ? R.idx + 1 : R.idx, 0, n - 1);
+  const step = plan.steps[i];
+  const kn = { single: 'Exposure', strip: 'Strip test', recipe: 'Recipe' }[plan.kind] || 'Exposure';
+  const title = (n > 1 ? kn + ', step ' + (i + 1) + ' of ' + n : kn) + (R.state === 'PAUSED' ? ', paused' : '');
+  const d = disAttr();
+  let l1 = st === 'GAP' || st === 'SETTLE' ? 'Enlarger off' : R.state === 'PAUSED' ? 'Enlarger off, paused' : 'Enlarger on', l2 = '';
+  if (st === 'SETTLE') l2 = 'Waiting for vibrations to settle';
+  else if (st === 'GAP') l2 = plan.kind === 'strip' ? step.label : 'Get ready: ' + step.label;
+  else if (plan.kind === 'strip') l2 = i === 0 ? 'Whole sheet' : 'Strips 1 to ' + (6 - i);
+  else if (plan.kind === 'recipe') l2 = step.label;
+  const cap = st === 'GAP' ? 'until the next exposure' : st === 'SETTLE' ? 'until the exposure starts' : 'remaining';
+  let vis = '';
+  if (plan.kind === 'strip') {
+    vis = '<div class="mstrips">' + [1, 2, 3, 4, 5, 6].map(s => '<div class="mstrip ' + (s > 6 - i ? 'cov' : 'lit') + '">' + s + '</div>').join('') + '</div>';
+  } else if (plan.kind === 'recipe') {
+    vis = '<div class="steps">' + plan.steps.map((s, j) => '<div class="stpl ' + (j < i ? 'done' : j === i ? 'cur' : '') + '"><span>' + esc(s.label) + '</span><span>' + (s.ms / 1000).toFixed(1) + ' s</span></div>').join('') + '</div>';
+    if (st === 'EXPOSING' && i === 0 && step.cues && step.cues.length)
+      vis += '<div class="cues">' + step.cues.map((c, j) => '<div class="cue" id="cue' + j + '" data-hold="' + c.holdMs + '"><span>' + esc(c.label) + '</span><span class="cs"></span></div>').join('') + '</div>';
+  }
+  if (plan.kind === 'single') vis = runToneHTML();
+  return '<div class="run"><div class="rl">' +
+    '<div class="rtitle">' + esc(title) + '</div>' +
+    '<div class="cdbox"><div class="cd num" id="cd">0.0</div><div class="cdcap">' + cap + '</div></div>' +
+    '<div class="pr1">' + l1 + '</div><div class="pr2">' + esc(l2) + '</div>' +
+    '<div class="runbtns">' + (R.state === 'PAUSED' ? '<button class="btn go" data-act="resume" ' + d + '>Resume</button>' : '<button class="tog2" data-act="pause" ' + (st === 'SETTLE' ? 'disabled' : d) + '>Pause</button>') + '<button class="tog2" data-act="cancel" ' + d + '>Cancel</button></div>' +
+    '</div><div class="rr">' +
+    '<div class="readout sm"><div><div class="lbl">' + (plan.grade ? 'Grade' : 'Stops') + '</div><div class="num">' + (plan.grade ? esc(plan.grade) : fmtStops(step.stops || 0)) + '</div></div><div><div class="lbl">' + (plan.kind === 'single' ? 'Time' : 'This step') + '</div><div class="num">' + (step.ms ? (step.ms / 1000).toFixed(1) : sec1(R.total)) + '<small>s</small></div></div></div>' +
+    vis + '</div></div>';
+}
+const sec1 = ms => (ms / 1000).toFixed(1);
+
+function bannerHTML() {
+  const run = running(R.state);
+  if (!U.linkOk) {
+    let text, btn = '';
+    if (!Ble.supported) text = 'This browser has no Web Bluetooth. Use Chrome on Android.';
+    else if (Ble.connecting) text = 'Connecting to the relay...';
+    else if (!Ble.dev) { text = 'Not connected to the relay.'; btn = '<button class="bbtn" data-act="bleChoose">Connect</button>'; }
+    else { text = 'Bluetooth connection lost.' + (run ? ' The relay keeps timing. Use the foot pedal to pause or cancel.' : ''); btn = '<button class="bbtn" data-act="bleRetry">Reconnect</button>'; }
+    return '<div class="banner">' + text + btn + '</div>';
+  }
+  if (R.state === 'FAULT') return '<div class="banner">' + esc(R.fault || 'Fault') + '.</div>';
+  const fw = fwWarning(Ble.info);                     // the relay is connected but running older firmware than this app needs
+  return fw ? '<div class="banner">' + esc(fw) + '</div>' : '';
+}
+function renderMainView() {
+  let html;
+  const banner = bannerHTML();
+  if (running(R.state)) html = viewRun();
+  else html = { time: viewTime, strip: viewStrip, recipe: viewRecipe, meter: viewMeter, print: viewPrint, cal: viewCal, dev: viewDev, log: viewLog, scale: viewScale, set: viewSet }[A.tab]();
+  $('#main').innerHTML = banner + html;
+  updateMeterLive(); updateDevLive();
+}
+const APP_VERSION = 'fstop-papers-v1';          // keep equal to CACHE in sw.js; the Relay panel shows it so you can tell which build a tablet is running
+const REQUIRED_FW = [1, 3];                                    // the relay firmware this app is built for (major, minor)
+function fwWarning(info) {
+  if (!info) return '';
+  const ok = info[1] > REQUIRED_FW[0] || (info[1] === REQUIRED_FW[0] && info[2] >= REQUIRED_FW[1]);
+  return ok ? '' : 'Relay firmware ' + info[1] + '.' + info[2] + ' is older than this app needs (' + REQUIRED_FW[0] + '.' + REQUIRED_FW[1] + '). Flash the new firmware.';
+}
+function aboutHTML() {
+  return '<div class="about">App ' + esc(APP_VERSION) + ' \u00b7 relay ' + (Ble.info && U.linkOk ? 'firmware ' + Ble.info[1] + '.' + Ble.info[2] : 'not connected') + '</div>';
+}
+function panelHTML() {
+  const bt = !Ble.supported ? 'not available in this browser' : Ble.connected ? 'connected' : Ble.connecting ? 'connecting' : Ble.dev ? 'reconnecting' : 'not connected';
+  const fs = !!document.fullscreenElement || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches);
+  const rows = [['App version', APP_VERSION], ['Saved data', U.persisted === true ? 'kept by the browser' : U.persisted === false ? 'the browser may clear it' : 'not known'], ['Bluetooth', bt], ['Relay', Ble.dev ? (Ble.dev.name || 'unnamed') : 'none chosen'],
+    ['Firmware', Ble.info ? 'protocol ' + Ble.info[0] + ', version ' + Ble.info[1] + '.' + Ble.info[2] : 'unknown'],
+    ['Status updates', U.linkOk ? 'arriving' : 'none'], ['Screen kept on', wakeLock ? 'yes' : 'no'], ['Full screen', fs ? 'yes' : 'no'], ['Last error', Ble.lastError || 'none']];
+  return '<div class="scrim"><div class="rpanel"><h3>Relay connection</h3><div class="kvs">' + rows.map(r => '<span class="k">' + r[0] + '</span><span>' + esc(r[1]) + '</span>').join('') + '</div>' +
+    '<div class="rlog">' + MLOG.slice(0, 40).map(m => '<div><span>' + m.t.toFixed(1) + '</span><span>' + esc(m.dir) + '</span><span>' + esc(m.text) + '</span></div>').join('') + '</div>' +
+    '<div class="rbtns"><button class="btn chip" data-act="bleRetry">Reconnect</button><button class="btn chip" data-act="bleChoose">Choose relay</button><button class="btn chip" data-act="bleDisconnect">Disconnect</button><button class="btn chip" data-act="fullscreen">Full screen</button><button class="btn chip on" data-act="panel">Close</button></div></div></div>';
+}
+function renderOverlay() {
+  const o = $('#overlay');
+  if (U.panel) { o.innerHTML = panelHTML(); return; }
+  if (U.pp && running(R.state)) U.pp = null;
+  if (U.pp) { o.innerHTML = '<div class="scrim"><div class="ppbox">' + paperOverlayHTML() + '</div></div>'; return; }
+  if (!U.keypad) { o.innerHTML = ''; return; }
+  const keys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', 'back'];
+  o.innerHTML = '<div class="scrim"><div class="kp"><div class="lbl">Base time in seconds</div><div class="kpd num">' + esc(U.keypad.buf || '0') + '</div><div class="kpg">' +
+    keys.map(k => '<button data-act="kp" data-a="' + k + '">' + (k === 'back' ? '\u232b' : k) + '</button>').join('') +
+    '<button data-act="kp" data-a="cancel">Cancel</button><button class="ok" data-act="kp" data-a="ok" style="grid-column:span 2">Set</button></div></div></div>';
+}
+function focusKey() {
+  const f = document.activeElement;
+  return f && f.dataset && f.dataset.act && screen.contains(f) ? [f.dataset.act, f.dataset.a || '', f.dataset.b || '', f.dataset.key || '', f.dataset.dir || ''] : null;
+}
+function restoreFocus(k) {
+  if (!k) return;
+  const sel = '[data-act="' + k[0] + '"]' + (k[1] ? '[data-a="' + k[1] + '"]' : '') + (k[2] ? '[data-b="' + k[2] + '"]' : '') + (k[3] ? '[data-key="' + k[3] + '"]' : '') + (k[4] ? '[data-dir="' + k[4] + '"]' : '');
+  const el = $(sel, screen);
+  if (el) el.focus({ preventScroll: true });
+}
+function renderAll() {
+  syncTemp();
+  const fk = focusKey();
+  renderSeg(); renderStatus(); renderNav(); renderMainView(); renderOverlay(); applyBright();
+  restoreFocus(fk);
+}
+function changed() { save(); syncArm(); renderAll(); }
+
+
+/* ================= input handling on the main screen ================= */
+screen.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  act(el.dataset.act, el.dataset);
+});
+screen.addEventListener('input', e => {
+  const t = e.target, k = t.dataset.in; if (!k) return;
+  if (k === 'bright') { A.set.bright = +t.value; applyBright(); save(); }
+  else if (k === 'lognote') { const en = A.log.find(x => String(x.id) === t.dataset.id); if (en) { en.note = t.value; save(); } }
+  else if (k === 'scale') { A.scale[t.dataset.f] = parseFloat(t.value) || 0; save(); const r = $('#scRes'); if (r) r.innerHTML = scaleHTML(); }
+});
+screen.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.in === 'scalePreset' && t.value) {
+    const [w, h] = t.value.split('x').map(Number), s = t.dataset.side;
+    A.scale[s + 'w'] = w; A.scale[s + 'h'] = h; save(); renderMainView();
+  }
+});
+
+function act(name, d) {
+  const a = d.a, b = d.b;
+  switch (name) {
+    case 'panel': U.panel = !U.panel; renderOverlay(); break;
+    case 'bleChoose': Ble.choose(); break;
+    case 'bleRetry': Ble.want = true; Ble.retry = 0; Ble.connect(); break;
+    case 'bleDisconnect': Ble.disconnect(); break;
+    case 'fullscreen': goFullscreen(); break;
+    case 'tab': if (['meter', 'print', 'cal'].includes(A.tab) && !['meter', 'print', 'cal'].includes(a) && (R.metering || U.zero)) { U.zero = null; toRelay('METER', { mode: 0 }); } A.tab = a; U.keypad = null; U.pp = null; changed(); break;
+    case 'pppick': case 'ppclose': case 'ppsel': case 'ppadd': case 'ppbase': case 'ppsurf': case 'ppfilt': case 'pptype': case 'ppgo': case 'pprename': case 'ppdup': case 'ppdel': case 'ppdelgo': case 'kb': paperAct(name, a); break;
+    case 'mstart': toRelay('METER', { mode: R.metering ? 0 : 1 }); break;
+    case 'mzero': startZero(); break;
+    case 'mhi': storeReading('hi'); break;
+    case 'mlo': storeReading('lo'); break;
+    case 'mref': storeReading('ref'); break;
+    case 'pgrade': { const i = GRADES.findIndex(g => g.p === A.print.grade); A.print.grade = GRADES[clamp(i + (+a), 0, GRADES.length - 1)].p; A.print.off = 0; changed(); break; }
+    case 'pplace': A.print.place = clamp(A.print.place + (+a) * ivN(), -24, 36); A.print.off = 0; changed(); break;
+    case 'poff': A.print.off = clamp(A.print.off + (+a) * ivN(), -60, 60); changed(); break;
+    case 'poff0': A.print.off = 0; changed(); break;
+    case 'puse': { const ps = printState(); if (ps.t) { A.baseT = clamp(Math.round(ps.t * 10), 5, 9999); A.off = 0; toast('Base time set to ' + (A.baseT / 10).toFixed(1) + ' s'); changed(); } break; }
+    case 'pexport': exportProfile(); break;
+    case 'pimport': importProfile(); break;
+    case 'calgrade': A.cal.grade = +a; changed(); break;
+    case 'calL': { const mm = meterModel(); if (canStore(mm)) { calEntry(A.cal.grade).L = mm.live; toast('Light level stored for grade ' + gradeLabel(A.cal.grade)); changed(); } break; }
+    case 'calstrip': { const e = calEntry(A.cal.grade); if (!(e.L > 0)) break; if (R.metering) toRelay('METER', { mode: 0 }); U.calRun = { grade: A.cal.grade, kind: a }; A.tab = 'strip'; toast('Set the base time, then press Start strip test.', 7000); changed(); break; }
+    case 'calpick': { const e = calEntry(A.cal.grade); if (e[a]) { e[a].pick = e[a].pick === +b ? null : +b; const r = syncProfile(A.cal.grade); if (r && r.error) toast(r.error, 6000, true); else if (r) toast('Grade ' + gradeLabel(A.cal.grade) + ' saved'); changed(); } break; }
+    case 'calredo': { const e = calEntry(A.cal.grade); delete e[a]; syncProfile(A.cal.grade); changed(); break; }
+    case 'calclear': delete A.cal.data[KEY_P(A.cal.grade)]; delete A.profile.grades[KEY_P(A.cal.grade)]; toast('Grade ' + gradeLabel(A.cal.grade) + ' cleared'); changed(); break;
+    case 'dvstep': { const def = DEVDEF[a], st = typeof def.step === 'function' ? def.step(A.dev[a], +b) : def.step; A.dev[a] = clamp(A.dev[a] + (+b) * st, def.min, def.max); changed(); break; }
+    case 'dvwash': A.dev.wash = !A.dev.wash; changed(); break;
+    case 'dvpd': A.dev.devSec = +a; changed(); break;
+    case 'dvpf': A.dev.fixSec = +a; changed(); break;
+    case 'dvps': A.dev.stopSec = +a; changed(); break;
+    case 'dvpw': A.dev.washSec = +a; A.dev.wash = true; changed(); break;
+    case 'dvmaker': { const pre = paperPreset(activePaper().preset); if (pre) { Object.assign(A.dev, pre.dev); toast('Maker\u2019s times set. ' + pre.note, 7000); changed(); } break; }
+    case 'dvstart': devStart(); break;
+    case 'dvpause': devPause(); break;
+    case 'dvskip': devSkip(); break;
+    case 'dvreset': U.dev = null; renderAll(); break;
+    case 'mclear': A.meter.ref = A.meter.hi = A.meter.lo = null; save(); toast('Readings cleared'); renderMainView(); break;
+    case 'base': A.baseT = clamp(A.baseT + (+a) * 5, 5, 9999); changed(); break;
+    case 'preset': A.baseT = +a * 10; changed(); break;
+    case 'keypad': U.keypad = { buf: '' }; renderOverlay(); break;
+    case 'kp': keypad(a); break;
+    case 'iv': A.iv = +a; changed(); break;
+    case 'off': A.off = clamp(A.off + (+a) * ivN(), -60, 60); changed(); break;
+    case 'off0': A.off = 0; changed(); break;
+    case 'setbase': A.baseT = clamp(Math.round(mainNomRaw() * 10), 5, 9999); A.off = 0; toast('Base time set to ' + (A.baseT / 10).toFixed(1) + ' s'); changed(); break;
+    case 'start': doStart(); break;
+    case 'pause': toRelay('PAUSE'); break;
+    case 'resume': toRelay('RESUME'); break;
+    case 'cancel': toRelay('CANCEL'); break;
+    case 'focus': toRelay('FOCUS', { on: R.state !== 'FOCUS' }); break;
+    case 'safe': toRelay('SAFELIGHT', { on: !R.safeUser }); break;
+    case 'strip': U.selStrip = U.selStrip === +a ? null : +a; renderMainView(); break;
+    case 'usestrip': if (U.selStrip) { A.off = (6 - U.selStrip) * ivN(); A.tab = 'time'; toast('Exposure set to ' + fmtStops(A.off) + ' stops from strip ' + U.selStrip); changed(); } break;
+    case 'addburn': case 'adddodge': A.recipe.push({ id: ++A.rid, type: name === 'addburn' ? 'burn' : 'dodge', n: ivN() }); if (A.recipe.length > 8) A.recipe.shift(); changed(); break;
+    case 'rn': { const e = A.recipe.find(x => String(x.id) === a); if (e) { e.n = clamp(e.n + (+b) * ivN(), 1, 48); changed(); } break; }
+    case 'rdel': A.recipe = A.recipe.filter(x => String(x.id) !== a); changed(); break;
+    case 'rsave': A.saved.push({ id: ++A.rid, name: 'Recipe ' + (A.saved.length + 1), baseT: A.baseT, off: A.off, iv: A.iv, recipe: JSON.parse(JSON.stringify(A.recipe)) }); if (A.saved.length > 6) A.saved.shift(); toast('Recipe saved'); changed(); break;
+    case 'rload': { const s = A.saved.find(x => String(x.id) === a); if (s) { A.baseT = s.baseT; A.off = s.off; A.iv = s.iv; A.recipe = JSON.parse(JSON.stringify(s.recipe)); A.recipe.forEach(x => { x.id = ++A.rid; }); toast('Loaded ' + s.name); changed(); } break; }
+    case 'rdelsaved': A.saved = A.saved.filter(x => String(x.id) !== a); changed(); break;
+    case 'logclear': A.log = []; changed(); break;
+    case 'applyscale': { const s = A.scale; const st = Math.log2((s.bw * s.bh) / (s.aw * s.ah)); A.baseT = clamp(Math.round((A.baseT / 10) * Math.pow(2, st) * 10), 5, 9999); A.scale.aw = s.bw; A.scale.ah = s.bh; toast('Base time is now ' + (A.baseT / 10).toFixed(1) + ' s'); changed(); break; }
+    case 'set': {
+      const k = d.key, dir = +d.dir, def = SETDEF[k]; let v = A.set[k];
+      if (def.opts) v = def.opts[clamp(def.opts.indexOf(v) + dir, 0, def.opts.length - 1)];
+      else v = clamp(Math.round((v + dir * def.step) * 100) / 100, def.min, def.max);
+      A.set[k] = v; pushConfig(); changed(); break;
+    }
+    case 'toggle': A.set[d.key] = !A.set[d.key]; pushConfig(); changed(); break;
+  }
+}
+function keypad(k) {
+  const p = U.keypad; if (!p) return;
+  if (k === 'cancel') U.keypad = null;
+  else if (k === 'back') p.buf = p.buf.slice(0, -1);
+  else if (k === 'ok') {
+    const v = parseFloat(p.buf);
+    if (v >= 0.5 && v <= 999.9) { A.baseT = Math.round(v * 10); U.keypad = null; changed(); return; }
+    toast('Enter a time from 0.5 to 999.9 s', 3000, true);
+  }
+  else if (k === '.') { if (!p.buf.includes('.')) p.buf += p.buf ? '.' : '0.'; }
+  else if (/^\d$/.test(k)) { if (p.buf.replace('.', '').length < 5 && !/\.\d$/.test(p.buf)) p.buf += k; }
+  renderOverlay();
+}
+function doStart() {
+  if (!U.linkOk) return;
+  syncArm(true); toRelay('START');
+}
+
+
+/* ================= live updates every frame ================= */
+function renderLive() {
+  devFrame();
+  const now = perf();
+  const cd = $('#cd');
+  if (cd) { cd.textContent = (U.linkOk ? '' : '~') + (remEst() / 1000).toFixed(1); cd.classList.toggle('stale', !U.linkOk); }
+  // segment bar
+  const segs = $$('#segbar .seg');
+  if (segs.length) {
+    const st = R.state === 'PAUSED' ? R.pf : R.state, r = remEst();
+    segs.forEach((sg, i) => {
+      let f = 0, nx = false;
+      if (running(R.state)) {
+        if (st === 'EXPOSING') { if (i < R.idx) f = 100; else if (i === R.idx) f = R.total ? (1 - r / R.total) * 100 : 0; }
+        else if (st === 'GAP') { if (i <= R.idx) f = 100; if (i === R.idx + 1) nx = true; }
+      }
+      sg.firstChild.style.width = clamp(f, 0, 100) + '%'; sg.classList.toggle('next', nx);
+    });
+  }
+  // dodge cues
+  $$('.cue').forEach(c => {
+    const hold = +c.dataset.hold, el = R.total - remEst(), cs = c.querySelector('.cs');
+    const holding = R.state === 'EXPOSING' && el < hold;
+    c.classList.toggle('hold', holding);
+    cs.textContent = holding ? 'Hold, ' + ((hold - el) / 1000).toFixed(1) + ' s left' : 'Release';
+  });
+  const fr = $('#focusrem');
+  if (fr) fr.textContent = R.state === 'FOCUS' && R.focusRem != null ? 'Off in ' + Math.floor(R.focusRem / 60000) + ':' + String(Math.floor(R.focusRem / 1000) % 60).padStart(2, '0') : '';
+  if (R.metering && now - Mt.rxAt > 1200 && A.tab === 'meter' && now - (U.meterTick || 0) > 400) { U.meterTick = now; updateMeterLive(); }
+  if (U.toast && now > U.toast.until) { U.toast = null; }
+  updateToast();
+
+}
+
+
+/* ================= layout: fit the 16:10 screen to the window ================= */
+function fit() {
+  const W = window.innerWidth, H = window.innerHeight, s = Math.min(W / 1280, H / 800);
+  const x = (W - 1280 * s) / 2, y = (H - 800 * s) / 2;
+  screen.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+}
+window.addEventListener('resize', fit);
+document.addEventListener('fullscreenchange', () => { fit(); if (U.panel) renderOverlay(); });
+
+/* ================= timers and boot ================= */
+setInterval(() => { if (Ble.connected) toRelay('PING'); }, 500);
+setInterval(() => {
+  if (U.zero && perf() - U.zero.t > 10000) { U.zero = null; toRelay('METER', { mode: 0 }); toast('Could not read a steady dark offset', 6000, true); renderAll(); }
+  if (U.linkOk && perf() - U.rxAt > 1000) { U.linkOk = false; mlog('App', 'no status from the relay: link lost'); renderAll(); }
+}, 250);
+(function frame() { renderLive(); requestAnimationFrame(frame); })();
+
+window.__fstopMeter = { netLux, stopsBetween, logDensity };
+window.__fstopPrint = { PAPER_LIST, importFile, GRADES, gradeDoses, printTime, tonePos, toneLevel, toneModeFor, toneColor, calcGrade, mergeProfile, buildPlan, mainNom, fwWarning, devTimeFor, fmtMS, devDebug: () => ({ tempOn: U.tempOn, tp: Tp, dev: U.dev && { idx: U.dev.idx, state: U.dev.state } }) };      // for the tests
+/* ================= splash ================= */
+{ const sp = document.getElementById('splash');
+  if (sp) { const hideSplash = () => { if (!sp.classList.contains('out')) { sp.classList.add('out'); setTimeout(() => sp.remove(), 600); } };
+    sp.addEventListener('click', hideSplash); setTimeout(hideSplash, 2600); } }
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { U.persisted = ok; }).catch(() => {});      // ask the browser not to clear the profile
+mlog('App', 'started; last settings restored');
+renderAll(); fit(); wake();
+(async () => {
+  try {
+    if (Ble.supported && navigator.bluetooth.getDevices) {          // remembered relay: reconnect without the pairing list
+      const ds = await navigator.bluetooth.getDevices();
+      const d = ds.find(x => /^FStop/.test(x.name || '')) || ds[0];
+      if (d) { Ble.attach(d); Ble.want = true; Ble.connect(); }
+    }
+  } catch (e) { /* not available */ }
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+
+})();
+</script>
+</body>
+</html>

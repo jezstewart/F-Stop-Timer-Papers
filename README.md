@@ -141,11 +141,11 @@ Metering ends by itself when focus mode ends, when an exposure starts (foot peda
 
 Meter, Print, Time, Strip test, Recipe, Develop, Log, Scale, Calibrate, Settings. The first two are the analysis workflow (meter the negative, then read the time); Time, Strip test and Recipe are the manual timers; Calibrate is the one-off paper setup, kept apart from printing; Scale and Log are tools.
 
-## Paper profile, calibration and the tone scale (Calibrate and Print tabs)
+## Paper profile, calibration and the tone scale (Calibrate and Exposure tabs)
 
 The **Calibrate** tab measures your paper and holds the profile. The **Print** tab turns your highlight and shadow readings into an exposure time using that profile, and shows where the highlight and shadow will land on the paper. It never chooses the grade: you enter it.
 
-**Profile.** One profile per paper, enlarger and filter set (at the moment one, set up as Ilford Multigrade RC Deluxe, satin, with Multigrade filters). It stores, for each grade you calibrate, two doses measured on blank paper: the dose that first gives a visible tone (the print highlight) and the dose that gives full black. Doses are in lux seconds as your probe reads them, using the nominal times typed on the Time tab, so they are only meaningful for this probe position and enlarger. Nothing is pre-loaded: the profile starts empty and every number in it is your own measurement.
+**Profile.** One profile per paper, enlarger and filter set (at the moment one, set up as Ilford Multigrade RC Deluxe, satin, with Multigrade filters). It stores, for each grade you calibrate, two doses measured on blank paper: the dose that first gives a visible tone (the print highlight) and the dose that gives full black. Doses are in lux seconds as your probe reads them, using the nominal times typed on the Timer tab, so they are only meaningful for this probe position and enlarger. Nothing is pre-loaded: the profile starts empty and every number in it is your own measurement.
 
 **Calibrating a grade** (Calibrate tab):
 1. Choose the grade, put its filter in, remove the negative, and put the probe on the baseboard. Start metering, wait for Steady and press Store light. Keep the same height and aperture for the strips.
@@ -154,7 +154,7 @@ The **Calibrate** tab measures your paper and holds the profile. The **Print** t
 
 The grade is saved once both strips are picked. Calibrate at least two grades, for example 0 and 5, or 0, 2 and 5. Grades in between are interpolated in a straight line, which assumes the filter steps are equal; grades outside the calibrated ones are refused rather than guessed. The strips are processed and dried between steps, so the Calibrate tab keeps its place if you close the app. **Export profile** (top right of the Calibrate tab) saves the profile and the calibration strips as a JSON file for backup, and **Import profile** reads such a file back. Importing adds the file's grades to the ones already in the app and overwrites a grade with the same number; it never removes anything. A file that is not a profile export, or whose grades are invalid, is refused with a message and changes nothing. The app also asks the browser to keep its saved data, and the Relay panel says whether it agreed.
 
-**Using it.** Store a highlight and a shadow reading on the Meter tab, then open the Print tab: choose the current paper grade, and the time that puts the highlight at the paper's first tone appears. You can place the highlight some stops above first tone, and change the time in steps; the markers (H for highlight, S for shadow) on the scale move with the time, and spread or close up when you change the grade. The lines under the scale say how many stops the negative covers against how many the paper covers at that grade. Use as base time copies the time to the Time tab.
+**Using it.** Store a highlight and a shadow reading on the Meter tab, then open the Exposure tab: choose the current paper grade, and the time that puts the highlight at the paper's first tone appears. You can place the highlight some stops above first tone, and change the time in steps; the markers (H for highlight, S for shadow) on the scale move with the time, and spread or close up when you change the grade. The lines under the scale say how many stops the negative covers against how many the paper covers at that grade. Use as base time copies the time to the Timer tab.
 
 **Grey and red.** The tone scale is true grey only while you are setting up: the link is up, the relay is idle or armed, the lamp is off and you are not metering. In every other case, including whenever the app cannot tell, it is red, and it is red on the exposure screen. Grey is dim (limit set in Settings, 30% by default) but it still contains blue-green light. Before trusting it, do a fog test: put a scrap of paper near the screen with the grey scale showing, for longer than you would ever leave it, and develop it. If it fogs, lower the limit or switch True grey tone scale off in Settings. If the red safelight film is over the screen, the grey will look red.
 
@@ -180,10 +180,10 @@ The **current paper grade** (the Multigrade filter you have in the enlarger, 00 
 
 There are two places to start an exposure, and the screen you are on decides which one runs:
 
-* **Time tab:** Start runs the base time and offset (a manual exposure, whatever the grade).
-* **Print tab:** Start runs the time shown on the Print screen, worked out from your highlight reading, the current paper grade and the paper profile. The foot pedal runs that same time while the Print tab is open, and the Time tab's own base time is left alone. If the Print screen has no time yet (no profile for the grade, or no highlight reading), Start is switched off and the pedal runs whatever was armed before. **Use as base time** copies the printed time to the Time tab when you want to work from it there.
+* **Timer tab:** Start runs the base time and offset (a manual exposure, whatever the grade).
+* **Exposure tab (called Print in earlier versions):** Start runs the time shown on the Exposure screen, worked out from your highlight reading, the current paper grade and the paper profile. The foot pedal runs that same time while the Print tab is open, and the Timer tab's own base time is left alone. If the Print screen has no time yet (no profile for the grade, or no highlight reading), Start is switched off and the pedal runs whatever was armed before. **Use as base time** copies the printed time to the Timer tab when you want to work from it there.
 
-The exposure screen shows the grade instead of the stops for an exposure started from the Print tab, and the log records it as "Print time, grade X".
+The exposure screen shows the grade instead of the stops for an exposure started from the Exposure tab, and the log records it as "Print time, grade X".
 
 ## Versions
 

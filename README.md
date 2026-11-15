@@ -9,7 +9,7 @@ firmware/relay/       relay firmware: relay.ino, relay_core.h (timing and meteri
 firmware/tests/       unit tests and a real-time test bridge for the timing logic
 test/integration.js   runs the real web app against the real timing logic
 test/simulator.js    drives the simulator through metering, calibration and a print
-docs/PROTOCOL.md      the Bluetooth messages
+docs/PROTOCOL.md      the Bluetooth messages, wiring diagrams
 simulator/            the interactive simulator, for trying the interface with no hardware. Includes a simulated darkroom bench for the light probe and paper calibration
 ```
 
